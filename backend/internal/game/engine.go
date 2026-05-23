@@ -199,36 +199,28 @@ func (e *Engine) playRound() {
 
 func (e *Engine) forfeitMatch(winner uuid.UUID) {
 	winnerID := &winner
-	loserID := e.p1ID
-	if winner == e.p1ID {
-		loserID = e.p2ID
-	}
 
-	// Set final score
 	if winner == e.p1ID {
 		e.score[0] = e.bestOf/2 + 1
 	} else {
 		e.score[1] = e.bestOf/2 + 1
 	}
 
-	e.completeMatch(winnerID, loserID)
+	e.completeMatch(winnerID)
 }
 
 func (e *Engine) finishMatch() {
 	var winnerID *uuid.UUID
-	var loserID uuid.UUID
 	if e.score[0] > e.score[1] {
 		winnerID = &e.p1ID
-		loserID = e.p2ID
 	} else {
 		winnerID = &e.p2ID
-		loserID = e.p1ID
 	}
 
-	e.completeMatch(winnerID, loserID)
+	e.completeMatch(winnerID)
 }
 
-func (e *Engine) completeMatch(winnerID *uuid.UUID, loserID uuid.UUID) {
+func (e *Engine) completeMatch(winnerID *uuid.UUID) {
 	ctx := context.Background()
 
 	tx, err := e.pool.Begin(ctx)
@@ -238,7 +230,6 @@ func (e *Engine) completeMatch(winnerID *uuid.UUID, loserID uuid.UUID) {
 	}
 	defer tx.Rollback(ctx)
 
-	// Calc ELO
 	var winner int
 	if winnerID != nil {
 		if *winnerID == e.p1ID {
@@ -251,24 +242,27 @@ func (e *Engine) completeMatch(winnerID *uuid.UUID, loserID uuid.UUID) {
 
 	ratingDelta := 0
 	if winnerID != nil {
-		ratingDelta = func() int {
-			if *winnerID == e.p1ID {
-				return newP1Rating - e.p1Rating
-			}
-			return newP2Rating - e.p2Rating
-		}()
+		if *winnerID == e.p1ID {
+			ratingDelta = newP1Rating - e.p1Rating
+		} else {
+			ratingDelta = newP2Rating - e.p2Rating
+		}
 	}
 
-	if err := e.matches.Complete(ctx, e.matchID, winnerID, ratingDelta); err != nil {
+	if _, err := tx.Exec(ctx,
+		`UPDATE matches SET status = 'completed', winner_id = $1, rating_delta = $2, completed_at = NOW() WHERE id = $3`,
+		winnerID, ratingDelta, e.matchID); err != nil {
 		log.Printf("failed to complete match: %v", err)
 		return
 	}
 
-	if err := e.players.UpdateRating(ctx, e.p1ID, newP1Rating); err != nil {
+	if _, err := tx.Exec(ctx,
+		`UPDATE players SET rating = $1 WHERE id = $2`, newP1Rating, e.p1ID); err != nil {
 		log.Printf("failed to update rating for %s: %v", e.p1ID, err)
 		return
 	}
-	if err := e.players.UpdateRating(ctx, e.p2ID, newP2Rating); err != nil {
+	if _, err := tx.Exec(ctx,
+		`UPDATE players SET rating = $1 WHERE id = $2`, newP2Rating, e.p2ID); err != nil {
 		log.Printf("failed to update rating for %s: %v", e.p2ID, err)
 		return
 	}
