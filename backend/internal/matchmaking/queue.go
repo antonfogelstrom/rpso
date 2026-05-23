@@ -104,7 +104,7 @@ func (q *Queue) createMatch(p1, p2 *Entry) {
 	}
 	defer tx.Rollback(ctx)
 
-	m, err := q.matches.Create(ctx, p1.PlayerID, p2.PlayerID, 3, player1.Rating, player2.Rating)
+	m, err := q.matches.Create(ctx, tx, p1.PlayerID, p2.PlayerID, 3, player1.Rating, player2.Rating)
 	if err != nil {
 		log.Printf("failed to create match: %v", err)
 		q.notifyError(p1, p2, "server error")

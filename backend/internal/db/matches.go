@@ -17,8 +17,8 @@ func NewMatchRepo(pool *pgxpool.Pool) *MatchRepo {
 	return &MatchRepo{pool: pool}
 }
 
-func (r *MatchRepo) Create(ctx context.Context, p1ID, p2ID uuid.UUID, bestOf int, rating1, rating2 int) (*model.Match, error) {
-	row := r.pool.QueryRow(ctx,
+func (r *MatchRepo) Create(ctx context.Context, tx pgx.Tx, p1ID, p2ID uuid.UUID, bestOf int, rating1, rating2 int) (*model.Match, error) {
+	row := tx.QueryRow(ctx,
 		`INSERT INTO matches (player1_id, player2_id, best_of, player1_rating_before, player2_rating_before)
 		 VALUES ($1, $2, $3, $4, $5)
 		 RETURNING id, player1_id, player2_id, winner_id, player1_rating_before, player2_rating_before,
