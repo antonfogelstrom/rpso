@@ -75,6 +75,7 @@ func (e *Engine) Run() {
 	needed := (e.bestOf / 2) + 1
 
 	for e.score[0] < needed && e.score[1] < needed {
+		e.roundNumber++
 		e.playRound()
 	}
 
@@ -82,8 +83,6 @@ func (e *Engine) Run() {
 }
 
 func (e *Engine) playRound() {
-	e.roundNumber++
-
 	var p1Move, p2Move string
 	var p1Done, p2Done bool
 
@@ -157,7 +156,6 @@ func (e *Engine) playRound() {
 		e.score[1]++
 		winnerID = &e.p2ID
 	default:
-		e.roundNumber-- // replay tie rounds
 	}
 
 	_, err := e.rounds.Create(context.Background(), e.matchID, e.roundNumber, p1Move, p2Move, winnerID)
