@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -56,4 +58,15 @@ func (rl *rateLimiter) cleanup(interval time.Duration) {
 		}
 		rl.mu.Unlock()
 	}
+}
+
+func realIP(r *http.Request) string {
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		parts := strings.Split(fwd, ",")
+		return strings.TrimSpace(parts[0])
+	}
+	if real := r.Header.Get("X-Real-IP"); real != "" {
+		return real
+	}
+	return r.RemoteAddr
 }

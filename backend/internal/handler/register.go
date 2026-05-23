@@ -28,7 +28,7 @@ type registerResponse struct {
 }
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
-	ip := r.RemoteAddr
+	ip := realIP(r)
 	if !registerLimiter.Allow(ip) {
 		writeError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many registration attempts")
 		return

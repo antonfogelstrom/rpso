@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/antonfogelstrom/rpso/internal/db"
@@ -31,6 +32,7 @@ type Engine struct {
 	moveCh      chan *ws.Message
 	disconnect  chan uuid.UUID
 	handle      *ws.EngineHandle
+	wg          *sync.WaitGroup
 }
 
 func NewEngine(
@@ -44,6 +46,7 @@ func NewEngine(
 	players *db.PlayerRepo,
 	matches *db.MatchRepo,
 	rounds *db.RoundRepo,
+	wg *sync.WaitGroup,
 ) *Engine {
 	return &Engine{
 		matchID:    matchID,
@@ -61,10 +64,13 @@ func NewEngine(
 		rounds:     rounds,
 		moveCh:     make(chan *ws.Message, 2),
 		disconnect: make(chan uuid.UUID, 2),
+		wg:         wg,
 	}
 }
 
 func (e *Engine) Run() {
+	defer e.wg.Done()
+
 	e.handle = &ws.EngineHandle{
 		MoveCh:       e.moveCh,
 		DisconnectCh: e.disconnect,
@@ -168,13 +174,11 @@ func (e *Engine) playRound() {
 	default:
 	}
 
-	{
-		ctx, cancel := e.dbContext()
-		defer cancel()
-		_, err := e.rounds.Create(ctx, e.matchID, e.roundNumber, p1Move, p2Move, winnerID)
-		if err != nil {
-			log.Printf("failed to persist round: %v", err)
-		}
+	ctx, cancel := e.dbContext()
+	_, err := e.rounds.Create(ctx, e.matchID, e.roundNumber, p1Move, p2Move, winnerID)
+	cancel()
+	if err != nil {
+		log.Printf("failed to persist round: %v", err)
 	}
 
 	e.hub.SendToPlayer(e.p1ID, map[string]interface{}{
@@ -210,15 +214,11 @@ func (e *Engine) playRound() {
 }
 
 func (e *Engine) forfeitMatch(winner uuid.UUID) {
-	winnerID := &winner
-
 	if winner == e.p1ID {
 		e.score[0] = e.bestOf/2 + 1
 	} else {
 		e.score[1] = e.bestOf/2 + 1
 	}
-
-	e.completeMatch(winnerID)
 }
 
 func (e *Engine) finishMatch() {
@@ -281,24 +281,25 @@ func (e *Engine) completeMatch(winnerID *uuid.UUID) {
 		return
 	}
 
-	winnerStr := "opponent"
+	p1Winner := "opponent"
+	p2Winner := "opponent"
 	if winnerID != nil {
 		if *winnerID == e.p1ID {
-			winnerStr = "you"
+			p1Winner = "you"
 		} else {
-			winnerStr = "opponent"
+			p2Winner = "you"
 		}
 	}
 
 	e.hub.SendToPlayer(e.p1ID, map[string]interface{}{
 		"type":          "match_result",
-		"winner":        winnerStr,
+		"winner":        p1Winner,
 		"rating_change": newP1Rating - e.p1Rating,
 		"final_score":   e.score[:],
 	})
 	e.hub.SendToPlayer(e.p2ID, map[string]interface{}{
 		"type":          "match_result",
-		"winner":        func() string { if winnerStr == "you" { return "opponent" }; return "you" }(),
+		"winner":        p2Winner,
 		"rating_change": newP2Rating - e.p2Rating,
 		"final_score":   []int{e.score[1], e.score[0]},
 	})

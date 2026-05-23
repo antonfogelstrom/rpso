@@ -14,6 +14,7 @@ type EngineHandle struct {
 
 type Hub struct {
 	clients       map[string]*Client
+	playerClients map[uuid.UUID][]*Client
 	register      chan *Client
 	unregister    chan *Client
 	incoming      chan *Message
@@ -26,6 +27,7 @@ type Hub struct {
 func NewHub() *Hub {
 	return &Hub{
 		clients:       make(map[string]*Client),
+		playerClients: make(map[uuid.UUID][]*Client),
 		register:      make(chan *Client),
 		unregister:    make(chan *Client),
 		incoming:      make(chan *Message, 256),
@@ -46,6 +48,7 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			h.mu.Lock()
 			h.clients[client.ID] = client
+			h.playerClients[client.PlayerID] = append(h.playerClients[client.PlayerID], client)
 			h.mu.Unlock()
 			log.Printf("client %s connected (player %s)", client.ID, client.PlayerID)
 
@@ -55,10 +58,27 @@ func (h *Hub) Run() {
 				delete(h.clients, client.ID)
 				close(client.send)
 
+				if clients := h.playerClients[client.PlayerID]; len(clients) > 0 {
+					filtered := make([]*Client, 0, len(clients)-1)
+					for _, c := range clients {
+						if c.ID != client.ID {
+							filtered = append(filtered, c)
+						}
+					}
+					if len(filtered) == 0 {
+						delete(h.playerClients, client.PlayerID)
+					} else {
+						h.playerClients[client.PlayerID] = filtered
+					}
+				}
+
 				if matchID, ok := h.playerMatches[client.PlayerID]; ok {
 					if eng, ok := h.engines[matchID]; ok {
 						go func(pid uuid.UUID) {
-							eng.DisconnectCh <- pid
+							select {
+							case eng.DisconnectCh <- pid:
+							default:
+							}
 						}(client.PlayerID)
 					}
 				}
@@ -143,10 +163,9 @@ func (h *Hub) SendToClient(clientID string, msg interface{}) {
 
 func (h *Hub) SendToPlayer(playerID uuid.UUID, msg interface{}) {
 	h.mu.RLock()
-	defer h.mu.RUnlock()
-	for _, client := range h.clients {
-		if client.PlayerID == playerID {
-			client.SendJSON(msg)
-		}
+	clients := h.playerClients[playerID]
+	h.mu.RUnlock()
+	for _, client := range clients {
+		client.SendJSON(msg)
 	}
 }

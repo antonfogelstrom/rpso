@@ -4,8 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/antonfogelstrom/rpso/internal/auth"
+)
+
+var (
+	loginIPLimiter       = newRateLimiter(20, time.Minute)
+	loginUsernameLimiter = newRateLimiter(5, time.Minute)
 )
 
 type loginRequest struct {
@@ -20,6 +26,12 @@ type loginResponse struct {
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	ip := realIP(r)
+	if !loginIPLimiter.Allow(ip) {
+		writeError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many login attempts")
+		return
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, 1024)
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -37,18 +49,18 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !loginUsernameLimiter.Allow(req.Username) {
+		writeError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many login attempts")
+		return
+	}
+
 	player, err := h.players.GetByUsername(r.Context(), req.Username)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL", "Database error")
 		return
 	}
-	if player == nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Player not found")
-		return
-	}
-
-	if !auth.VerifyToken(req.Token, player.TokenHash) {
-		writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Token does not match")
+	if player == nil || !auth.VerifyToken(req.Token, player.TokenHash) {
+		writeError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "Invalid username or token")
 		return
 	}
 

@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -17,7 +19,6 @@ import (
 	"github.com/antonfogelstrom/rpso/internal/ws"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
@@ -33,15 +34,12 @@ func main() {
 		log.Fatal("DATABASE_URL is required")
 	}
 
-	pool, err := pgxpool.New(ctx, databaseURL)
+	pool, err := db.NewPool(ctx, databaseURL)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer pool.Close()
 
-	if err := pool.Ping(ctx); err != nil {
-		log.Fatalf("failed to ping database: %v", err)
-	}
 	log.Println("connected to database")
 
 	playerRepo := db.NewPlayerRepo(pool)
@@ -53,7 +51,8 @@ func main() {
 
 	hub := ws.NewHub()
 
-	queue := matchmaking.NewQueue(hub, pool, playerRepo, matchRepo, roundRepo)
+	wg := &sync.WaitGroup{}
+	queue := matchmaking.NewQueue(hub, pool, playerRepo, matchRepo, roundRepo, wg)
 
 	hub.SetOnMessage(func(msg *ws.Message, client *ws.Client) {
 		switch msg.Type {
@@ -83,7 +82,7 @@ func main() {
 	r.Use(chiMiddleware.Logger)
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(chiMiddleware.Timeout(30 * time.Second))
-	r.Use(corsMiddleware)
+	r.Use(corsMiddleware(allowedOrigins))
 
 	r.Post("/api/register", h.Register)
 	r.Post("/api/login", h.Login)
@@ -94,6 +93,16 @@ func main() {
 		r.Get("/api/players/{id}", h.GetPlayerProfile)
 		r.Get("/api/players/{id}/matches", h.GetPlayerMatches)
 		r.Get("/api/leaderboard", h.GetLeaderboard)
+	})
+
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		if err := pool.Ping(r.Context()); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]string{"status": "unavailable"})
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
 	port := os.Getenv("PORT")
@@ -118,6 +127,9 @@ func main() {
 	<-quit
 
 	log.Println("shutting down...")
+
+	wg.Wait()
+
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -143,15 +155,20 @@ func parseAllowedOrigins(raw string) map[string]bool {
 	return origins
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+func corsMiddleware(allowedOrigins map[string]bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+			if origin == "" || allowedOrigins[origin] {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }

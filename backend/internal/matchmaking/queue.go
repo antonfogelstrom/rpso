@@ -13,6 +13,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const DefaultBestOf = 3
+
 type Entry struct {
 	PlayerID uuid.UUID
 	ClientID string
@@ -27,15 +29,17 @@ type Queue struct {
 	players *db.PlayerRepo
 	matches *db.MatchRepo
 	rounds  *db.RoundRepo
+	wg      *sync.WaitGroup
 }
 
-func NewQueue(hub *ws.Hub, pool *pgxpool.Pool, players *db.PlayerRepo, matches *db.MatchRepo, rounds *db.RoundRepo) *Queue {
+func NewQueue(hub *ws.Hub, pool *pgxpool.Pool, players *db.PlayerRepo, matches *db.MatchRepo, rounds *db.RoundRepo, wg *sync.WaitGroup) *Queue {
 	return &Queue{
 		hub:     hub,
 		pool:    pool,
 		players: players,
 		matches: matches,
 		rounds:  rounds,
+		wg:      wg,
 	}
 }
 
@@ -106,7 +110,7 @@ func (q *Queue) createMatch(p1, p2 *Entry) {
 	}
 	defer tx.Rollback(ctx)
 
-	m, err := q.matches.Create(ctx, tx, p1.PlayerID, p2.PlayerID, 3, player1.Rating, player2.Rating)
+	m, err := q.matches.Create(ctx, tx, p1.PlayerID, p2.PlayerID, DefaultBestOf, player1.Rating, player2.Rating)
 	if err != nil {
 		log.Printf("failed to create match: %v", err)
 		q.notifyError(p1, p2, "server error")
@@ -132,8 +136,9 @@ func (q *Queue) createMatch(p1, p2 *Entry) {
 		"opponent_rating": player1.Rating,
 	})
 
+	q.wg.Add(1)
 	eng := game.NewEngine(m.ID, p1.PlayerID, p2.PlayerID, player1.Username, player2.Username,
-		player1.Rating, player2.Rating, 3, q.hub, q.pool, q.players, q.matches, q.rounds)
+		player1.Rating, player2.Rating, DefaultBestOf, q.hub, q.pool, q.players, q.matches, q.rounds, q.wg)
 	go eng.Run()
 }
 
