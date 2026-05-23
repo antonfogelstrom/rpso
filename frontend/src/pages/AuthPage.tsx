@@ -29,7 +29,7 @@ export function AuthPage() {
     setLoading(true)
     try {
       if (tab === "register") {
-        const res = await apiClient.register({ username })
+        const res = await apiClient.register()
         setRegisteredData(res)
       } else {
         const res = await apiClient.login({ username, token })
@@ -71,14 +71,16 @@ export function AuthPage() {
         </div>
 
         <form onSubmit={handle} className="space-y-4">
-          <Input
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            minLength={3}
-            maxLength={20}
-          />
+          {tab === "login" && (
+            <Input
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              minLength={3}
+              maxLength={20}
+            />
+          )}
 
           {tab === "login" && (
             <Input
@@ -101,6 +103,10 @@ export function AuthPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 max-w-md w-full mx-4 space-y-4">
             <h2 className="text-xl font-bold">Account created!</h2>
+
+            <p className="text-sm text-neutral-400">
+              Your username is <span className="font-semibold text-white">{registeredData.username}</span>.
+            </p>
 
             <p className="text-sm text-neutral-400">
               Your login token is shown below. Save it in a safe place — you'll need it

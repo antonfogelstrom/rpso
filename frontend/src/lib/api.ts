@@ -1,4 +1,4 @@
-import type { Envelope, PlayerProfile, Match, Player, RegisterResponse, LoginRequest, RegisterRequest, LoginResponse } from '../types'
+import type { Envelope, PlayerProfile, Match, Player, RegisterResponse, LoginRequest, LoginResponse } from '../types'
 
 class ApiError extends Error {
   code: string
@@ -28,8 +28,8 @@ function authHeaders(token: string): Record<string, string> {
 }
 
 export const apiClient = {
-  register(data: RegisterRequest): Promise<RegisterResponse> {
-    return request<RegisterResponse>("/api/register", { method: "POST", body: JSON.stringify(data) })
+  register(): Promise<RegisterResponse> {
+    return request<RegisterResponse>("/api/register", { method: "POST", body: "{}" })
   },
 
   login(data: LoginRequest): Promise<LoginResponse> {

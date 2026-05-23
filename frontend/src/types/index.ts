@@ -40,9 +40,8 @@ export interface Envelope<T> {
   error?: { code: string; message: string }
 }
 
-export interface RegisterRequest {
-  username: string
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface RegisterRequest {}
 
 export interface RegisterResponse {
   player_id: string
