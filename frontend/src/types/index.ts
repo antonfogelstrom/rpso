@@ -116,5 +116,5 @@ export interface ClientMessageMove {
 export type ClientMessage = ClientMessageJoinQueue | ClientMessageLeaveQueue | ClientMessageMove
 
 export type Move = "rock" | "paper" | "scissors"
-export type View = "auth" | "dash" | "lb" | "play"
+export type View = "login" | "register" | "dash" | "lb" | "play"
 export type GameStatus = "idle" | "connected" | "queueing" | "playing" | "done"

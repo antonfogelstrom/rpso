@@ -1,18 +1,18 @@
 import type { View } from "../../types"
 
+export interface Tab {
+  id: View
+  label: string
+}
+
 interface BottomNavProps {
   view: View
   onNavigate: (view: View) => void
   hidden?: boolean
+  tabs: Tab[]
 }
 
-const tabs: { id: View; label: string }[] = [
-  { id: "dash", label: "Dashboard" },
-  { id: "play", label: "Play" },
-  { id: "lb", label: "Leaderboard" },
-]
-
-export function BottomNav({ view, onNavigate, hidden }: BottomNavProps) {
+export function BottomNav({ view, onNavigate, hidden, tabs }: BottomNavProps) {
   if (hidden) return null
 
   return (

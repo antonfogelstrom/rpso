@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { apiClient } from "../lib/api"
 import { useAuth } from "../context/AuthContext"
 import { Button } from "../components/ui/Button"
@@ -7,15 +7,46 @@ import type { RegisterResponse } from "../types"
 
 const OBFUSCATED_TOKEN = "••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"
 
-export function AuthPage() {
+interface AuthPageProps {
+  tab: "login" | "register"
+}
+
+export function AuthPage({ tab }: AuthPageProps) {
   const { login } = useAuth()
-  const [tab, setTab] = useState<"login" | "register">("login")
   const [username, setUsername] = useState("")
   const [token, setToken] = useState("")
   const [err, setErr] = useState("")
   const [loading, setLoading] = useState(false)
   const [registeredData, setRegisteredData] = useState<RegisterResponse | null>(null)
   const [copied, setCopied] = useState(false)
+  const cancelledRef = useRef(false)
+
+  useEffect(() => {
+    if (tab !== "register") {
+      setRegisteredData(null)
+      setErr("")
+      return
+    }
+
+    cancelledRef.current = false
+    setErr("")
+    setLoading(true)
+
+    apiClient.register()
+      .then((res) => {
+        if (!cancelledRef.current) setRegisteredData(res)
+      })
+      .catch((e) => {
+        if (!cancelledRef.current) {
+          setErr(e instanceof Error ? e.message : "An error occurred")
+        }
+      })
+      .finally(() => {
+        if (!cancelledRef.current) setLoading(false)
+      })
+
+    return () => { cancelledRef.current = true }
+  }, [tab])
 
   const handleCopy = async (text: string) => {
     await navigator.clipboard.writeText(text)
@@ -23,18 +54,13 @@ export function AuthPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handle = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setErr("")
     setLoading(true)
     try {
-      if (tab === "register") {
-        const res = await apiClient.register()
-        setRegisteredData(res)
-      } else {
-        const res = await apiClient.login({ username, token })
-        login(token, res.player_id, res.username)
-      }
+      const res = await apiClient.login({ username, token })
+      login(token, res.player_id, res.username)
     } catch (e) {
       setErr(e instanceof Error ? e.message : "An error occurred")
     } finally {
@@ -53,25 +79,8 @@ export function AuthPage() {
       <div className="max-w-sm mx-auto mt-24 p-6 space-y-6">
         <h1 className="text-2xl font-bold text-center">rpso</h1>
 
-        <div className="flex gap-2">
-          <Button
-            variant={tab === "login" ? "primary" : "ghost"}
-            className="flex-1"
-            onClick={() => setTab("login")}
-          >
-            Login
-          </Button>
-          <Button
-            variant={tab === "register" ? "primary" : "ghost"}
-            className="flex-1"
-            onClick={() => setTab("register")}
-          >
-            Register
-          </Button>
-        </div>
-
-        <form onSubmit={handle} className="space-y-4">
-          {tab === "login" && (
+        {tab === "login" ? (
+          <form onSubmit={handleLogin} className="space-y-4">
             <Input
               placeholder="Username"
               value={username}
@@ -80,23 +89,25 @@ export function AuthPage() {
               minLength={3}
               maxLength={20}
             />
-          )}
 
-          {tab === "login" && (
             <Input
               placeholder="Token"
               value={token}
               onChange={(e) => setToken(e.target.value)}
               required
             />
-          )}
 
-          {err && <p className="text-red-400 text-sm">{err}</p>}
+            {err && <p className="text-red-400 text-sm">{err}</p>}
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "..." : tab === "register" ? "Register" : "Login"}
-          </Button>
-        </form>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "..." : "Login"}
+            </Button>
+          </form>
+        ) : loading ? (
+          <p className="text-center text-neutral-400">Registering…</p>
+        ) : err ? (
+          <p className="text-red-400 text-sm text-center">{err}</p>
+        ) : null}
       </div>
 
       {registeredData && (
