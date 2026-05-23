@@ -3,7 +3,6 @@ package ws
 import (
 	"encoding/json"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,7 +23,6 @@ type Client struct {
 	conn     *websocket.Conn
 	send     chan []byte
 	hub      *Hub
-	mu       sync.Mutex
 }
 
 func NewClient(conn *websocket.Conn, playerID uuid.UUID, hub *Hub) *Client {

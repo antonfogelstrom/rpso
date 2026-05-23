@@ -63,6 +63,12 @@ func (r *PlayerRepo) GetByID(ctx context.Context, id uuid.UUID) (*model.Player, 
 	return p, nil
 }
 
+func (r *PlayerRepo) UpdateRatingTx(ctx context.Context, tx pgx.Tx, id uuid.UUID, newRating int) error {
+	_, err := tx.Exec(ctx,
+		`UPDATE players SET rating = $1 WHERE id = $2`, newRating, id)
+	return err
+}
+
 func (r *PlayerRepo) UpdateRating(ctx context.Context, id uuid.UUID, newRating int) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE players SET rating = $1 WHERE id = $2`, newRating, id)

@@ -147,7 +147,6 @@ func (h *Hub) SendToPlayer(playerID uuid.UUID, msg interface{}) {
 	for _, client := range h.clients {
 		if client.PlayerID == playerID {
 			client.SendJSON(msg)
-			return
 		}
 	}
 }

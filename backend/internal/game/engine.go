@@ -247,20 +247,16 @@ func (e *Engine) completeMatch(winnerID *uuid.UUID) {
 		}
 	}
 
-	if _, err := tx.Exec(ctx,
-		`UPDATE matches SET status = 'completed', winner_id = $1, rating_delta = $2, completed_at = NOW() WHERE id = $3`,
-		winnerID, ratingDelta, e.matchID); err != nil {
+	if err := e.matches.CompleteTx(ctx, tx, e.matchID, winnerID, ratingDelta); err != nil {
 		log.Printf("failed to complete match: %v", err)
 		return
 	}
 
-	if _, err := tx.Exec(ctx,
-		`UPDATE players SET rating = $1 WHERE id = $2`, newP1Rating, e.p1ID); err != nil {
+	if err := e.players.UpdateRatingTx(ctx, tx, e.p1ID, newP1Rating); err != nil {
 		log.Printf("failed to update rating for %s: %v", e.p1ID, err)
 		return
 	}
-	if _, err := tx.Exec(ctx,
-		`UPDATE players SET rating = $1 WHERE id = $2`, newP2Rating, e.p2ID); err != nil {
+	if err := e.players.UpdateRatingTx(ctx, tx, e.p2ID, newP2Rating); err != nil {
 		log.Printf("failed to update rating for %s: %v", e.p2ID, err)
 		return
 	}

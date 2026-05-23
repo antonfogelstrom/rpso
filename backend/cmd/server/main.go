@@ -48,6 +48,7 @@ func main() {
 	roundRepo := db.NewRoundRepo(pool)
 
 	sessionStore := auth.NewSessionStore()
+	go sessionStore.Cleanup(10 * time.Minute)
 
 	hub := ws.NewHub()
 

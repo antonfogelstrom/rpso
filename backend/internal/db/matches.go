@@ -79,8 +79,8 @@ func (r *MatchRepo) GetByPlayerID(ctx context.Context, playerID uuid.UUID, limit
 	return matches, rows.Err()
 }
 
-func (r *MatchRepo) Complete(ctx context.Context, id uuid.UUID, winnerID *uuid.UUID, ratingDelta int) error {
-	_, err := r.pool.Exec(ctx,
+func (r *MatchRepo) CompleteTx(ctx context.Context, tx pgx.Tx, id uuid.UUID, winnerID *uuid.UUID, ratingDelta int) error {
+	_, err := tx.Exec(ctx,
 		`UPDATE matches SET status = 'completed', winner_id = $1, rating_delta = $2, completed_at = NOW()
 		 WHERE id = $3`, winnerID, ratingDelta, id)
 	return err

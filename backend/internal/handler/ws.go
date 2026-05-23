@@ -3,24 +3,24 @@ package handler
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/antonfogelstrom/rpso/internal/auth"
 	"github.com/antonfogelstrom/rpso/internal/ws"
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true // allow all origins for MVP
-	},
-}
-
 func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
+	protocols := websocket.Subprotocols(r)
+	var token string
+	for _, p := range protocols {
+		if strings.HasPrefix(p, "bearer-") {
+			token = strings.TrimPrefix(p, "bearer-")
+			break
+		}
+	}
 	if token == "" {
-		writeError(w, http.StatusUnauthorized, "MISSING_TOKEN", "token query parameter required")
+		writeError(w, http.StatusUnauthorized, "MISSING_TOKEN", "token required via Sec-WebSocket-Protocol header")
 		return
 	}
 
@@ -39,6 +39,15 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	if !auth.VerifyToken(token, player.TokenHash) {
 		writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "token does not match")
 		return
+	}
+
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		Subprotocols:    []string{"bearer-" + token},
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
