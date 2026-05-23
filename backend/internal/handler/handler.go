@@ -10,20 +10,22 @@ import (
 )
 
 type Handler struct {
-	players *db.PlayerRepo
-	matches *db.MatchRepo
-	rounds  *db.RoundRepo
-	session *auth.SessionStore
-	hub     *ws.Hub
+	players        *db.PlayerRepo
+	matches        *db.MatchRepo
+	rounds         *db.RoundRepo
+	session        *auth.SessionStore
+	hub            *ws.Hub
+	allowedOrigins map[string]bool
 }
 
-func New(players *db.PlayerRepo, matches *db.MatchRepo, rounds *db.RoundRepo, session *auth.SessionStore, hub *ws.Hub) *Handler {
+func New(players *db.PlayerRepo, matches *db.MatchRepo, rounds *db.RoundRepo, session *auth.SessionStore, hub *ws.Hub, allowedOrigins map[string]bool) *Handler {
 	return &Handler{
-		players: players,
-		matches: matches,
-		rounds:  rounds,
-		session: session,
-		hub:     hub,
+		players:        players,
+		matches:        matches,
+		rounds:         rounds,
+		session:        session,
+		hub:            hub,
+		allowedOrigins: allowedOrigins,
 	}
 }
 

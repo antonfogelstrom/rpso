@@ -46,7 +46,11 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		WriteBufferSize: 1024,
 		Subprotocols:    []string{"bearer-" + token},
 		CheckOrigin: func(r *http.Request) bool {
-			return true
+			origin := r.Header.Get("Origin")
+			if origin == "" {
+				return true
+			}
+			return h.allowedOrigins[origin]
 		},
 	}
 

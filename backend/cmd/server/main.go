@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -74,7 +75,9 @@ func main() {
 
 	go hub.Run()
 
-	h := handler.New(playerRepo, matchRepo, roundRepo, sessionStore, hub)
+	allowedOrigins := parseAllowedOrigins(os.Getenv("ALLOWED_ORIGINS"))
+
+	h := handler.New(playerRepo, matchRepo, roundRepo, sessionStore, hub, allowedOrigins)
 
 	r := chi.NewRouter()
 	r.Use(chiMiddleware.Logger)
@@ -122,6 +125,22 @@ func main() {
 		log.Fatalf("server shutdown error: %v", err)
 	}
 	log.Println("server stopped")
+}
+
+func parseAllowedOrigins(raw string) map[string]bool {
+	origins := map[string]bool{
+		"http://localhost:5173": true,
+	}
+	if raw == "" {
+		return origins
+	}
+	for _, o := range strings.Split(raw, ",") {
+		o = strings.TrimSpace(o)
+		if o != "" {
+			origins[o] = true
+		}
+	}
+	return origins
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

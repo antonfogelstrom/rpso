@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/antonfogelstrom/rpso/internal/auth"
@@ -19,8 +20,14 @@ type loginResponse struct {
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024)
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			writeError(w, http.StatusRequestEntityTooLarge, "TOO_LARGE", "Request body too large")
+			return
+		}
 		writeError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
 		return
 	}

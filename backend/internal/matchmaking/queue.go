@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/antonfogelstrom/rpso/internal/db"
 	"github.com/antonfogelstrom/rpso/internal/game"
@@ -81,7 +82,8 @@ func (q *Queue) Leave(playerID uuid.UUID) {
 }
 
 func (q *Queue) createMatch(p1, p2 *Entry) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	player1, err := q.players.GetByID(ctx, p1.PlayerID)
 	if err != nil {

@@ -2,15 +2,20 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/antonfogelstrom/rpso/internal/auth"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+var (
+	usernameRegex   = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+	registerLimiter = newRateLimiter(5, time.Minute)
+)
 
 type registerRequest struct {
 	Username string `json:"username"`
@@ -23,8 +28,19 @@ type registerResponse struct {
 }
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+	ip := r.RemoteAddr
+	if !registerLimiter.Allow(ip) {
+		writeError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Too many registration attempts")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1024)
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			writeError(w, http.StatusRequestEntityTooLarge, "TOO_LARGE", "Request body too large")
+			return
+		}
 		writeError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
 		return
 	}

@@ -79,6 +79,41 @@ func (r *MatchRepo) GetByPlayerID(ctx context.Context, playerID uuid.UUID, limit
 	return matches, rows.Err()
 }
 
+type PlayerStats struct {
+	TotalMatches int
+	Wins         int
+	Losses       int
+	Draws        int
+}
+
+func (r *MatchRepo) GetPlayerStats(ctx context.Context, playerID uuid.UUID) (*PlayerStats, error) {
+	var stats PlayerStats
+
+	row := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM matches
+		 WHERE player1_id = $1 OR player2_id = $1`, playerID)
+	if err := row.Scan(&stats.TotalMatches); err != nil {
+		return nil, err
+	}
+
+	row = r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM matches WHERE winner_id = $1`, playerID)
+	if err := row.Scan(&stats.Wins); err != nil {
+		return nil, err
+	}
+
+	row = r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM matches
+		 WHERE (player1_id = $1 OR player2_id = $1) AND winner_id IS NULL`, playerID)
+	if err := row.Scan(&stats.Draws); err != nil {
+		return nil, err
+	}
+
+	stats.Losses = stats.TotalMatches - stats.Wins - stats.Draws
+
+	return &stats, nil
+}
+
 func (r *MatchRepo) CompleteTx(ctx context.Context, tx pgx.Tx, id uuid.UUID, winnerID *uuid.UUID, ratingDelta int) error {
 	_, err := tx.Exec(ctx,
 		`UPDATE matches SET status = 'completed', winner_id = $1, rating_delta = $2, completed_at = NOW()

@@ -38,24 +38,10 @@ func (h *Handler) GetPlayerProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Compute stats from match history
-	matches, err := h.matches.GetByPlayerID(r.Context(), id, 1000)
+	stats, err := h.matches.GetPlayerStats(r.Context(), id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL", "Database error")
 		return
-	}
-
-	var wins, losses, draws int
-	for _, m := range matches {
-		if m.WinnerID == nil {
-			draws++ // shouldn't happen in best-of-3, but handle gracefully
-			continue
-		}
-		if *m.WinnerID == id {
-			wins++
-		} else {
-			losses++
-		}
 	}
 
 	writeJSON(w, http.StatusOK, envelope{
@@ -63,10 +49,10 @@ func (h *Handler) GetPlayerProfile(w http.ResponseWriter, r *http.Request) {
 			ID:           player.ID.String(),
 			Username:     player.Username,
 			Rating:       player.Rating,
-			TotalMatches: len(matches),
-			Wins:         wins,
-			Losses:       losses,
-			Draws:        draws,
+			TotalMatches: stats.TotalMatches,
+			Wins:         stats.Wins,
+			Losses:       stats.Losses,
+			Draws:        stats.Draws,
 			CreatedAt:    player.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		},
 	})

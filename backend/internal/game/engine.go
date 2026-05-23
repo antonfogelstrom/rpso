@@ -82,7 +82,17 @@ func (e *Engine) Run() {
 	e.finishMatch()
 }
 
+func (e *Engine) dbContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), 5*time.Second)
+}
+
 func (e *Engine) playRound() {
+	// Drain any stale disconnect events from previous rounds
+	select {
+	case <-e.disconnect:
+	default:
+	}
+
 	var p1Move, p2Move string
 	var p1Done, p2Done bool
 
@@ -158,9 +168,13 @@ func (e *Engine) playRound() {
 	default:
 	}
 
-	_, err := e.rounds.Create(context.Background(), e.matchID, e.roundNumber, p1Move, p2Move, winnerID)
-	if err != nil {
-		log.Printf("failed to persist round: %v", err)
+	{
+		ctx, cancel := e.dbContext()
+		defer cancel()
+		_, err := e.rounds.Create(ctx, e.matchID, e.roundNumber, p1Move, p2Move, winnerID)
+		if err != nil {
+			log.Printf("failed to persist round: %v", err)
+		}
 	}
 
 	e.hub.SendToPlayer(e.p1ID, map[string]interface{}{
@@ -219,7 +233,8 @@ func (e *Engine) finishMatch() {
 }
 
 func (e *Engine) completeMatch(winnerID *uuid.UUID) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	tx, err := e.pool.Begin(ctx)
 	if err != nil {
