@@ -43,6 +43,8 @@ export function PlayPage({
     null,
   );
   const [revealed, setRevealed] = useState(false);
+  const [choiceTimeLeft, setChoiceTimeLeft] = useState<number | null>(null);
+  const [moveTimeout, setMoveTimeout] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   const onMessage = useCallback(
@@ -59,6 +61,8 @@ export function PlayPage({
           setCountdown(null);
           setPendingResult(null);
           setRevealed(false);
+          setMoveTimeout(msg.move_timeout);
+          setChoiceTimeLeft(msg.move_timeout);
           setStatus("playing");
           setPosition(0);
           onGameActiveChange?.(true);
@@ -104,6 +108,7 @@ export function PlayPage({
           setCountdown(null);
           setRevealed(false);
           setPendingResult(null);
+          setChoiceTimeLeft(moveTimeout);
           setResultMsg((prev) => {
             if (prev) setStatus("done");
             return prev;
@@ -114,7 +119,15 @@ export function PlayPage({
       }
     }, 1000);
     return () => clearTimeout(t);
-  }, [countdown, pendingResult]);
+  }, [countdown, pendingResult, moveTimeout]);
+
+  useEffect(() => {
+    if (choiceTimeLeft === null || choiceTimeLeft <= 0) return;
+    const t = setTimeout(() => {
+      setChoiceTimeLeft((c) => (c !== null ? c - 1 : null));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [choiceTimeLeft]);
 
   const join = () => {
     setError("");
@@ -132,6 +145,7 @@ export function PlayPage({
   const makeMove = (move: Move) => {
     if (myMove) return;
     setMyMove(move);
+    setChoiceTimeLeft(null);
     send({ type: "move", data: { move } });
   };
 
@@ -143,6 +157,8 @@ export function PlayPage({
     setCountdown(null);
     setPendingResult(null);
     setRevealed(false);
+    setMoveTimeout(null);
+    setChoiceTimeLeft(null);
     join();
   };
 
@@ -156,6 +172,8 @@ export function PlayPage({
     setCountdown(null);
     setPendingResult(null);
     setRevealed(false);
+    setMoveTimeout(null);
+    setChoiceTimeLeft(null);
     setError("");
     onGameActiveChange?.(false);
   };
@@ -220,6 +238,19 @@ export function PlayPage({
           {status === "playing" && myMove === null && (
             <div className="space-y-3">
               <p className="text-center text-sm text-neutral-400">
+                {choiceTimeLeft !== null && choiceTimeLeft > 0 ? (
+                  <span
+                    className={
+                      choiceTimeLeft <= 10
+                        ? "text-red-400"
+                        : "text-amber-400"
+                    }
+                  >
+                    ⏱ {choiceTimeLeft}s{" "}
+                  </span>
+                ) : choiceTimeLeft === 0 ? (
+                  <span className="text-red-500">Time's up! </span>
+                ) : null}
                 Choose your move!
               </p>
               <div className="grid grid-cols-3 gap-3">

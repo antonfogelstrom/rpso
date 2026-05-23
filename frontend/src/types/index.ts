@@ -70,6 +70,7 @@ export interface MatchFoundMessage {
   match_id: string
   opponent: string
   opponent_rating: number
+  move_timeout: number
 }
 
 export interface RoundResultMessage {
