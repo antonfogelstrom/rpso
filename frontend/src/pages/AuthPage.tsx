@@ -1,78 +1,88 @@
-import { useState, useEffect, useRef } from "react"
-import { apiClient } from "../lib/api"
-import { useAuth } from "../context/AuthContext"
-import { Button } from "../components/ui/Button"
-import { Input } from "../components/ui/Input"
-import type { RegisterResponse } from "../types"
+import { useState, useEffect, useRef } from "react";
+import { apiClient } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import type { RegisterResponse } from "../types";
 
-const OBFUSCATED_TOKEN = "••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"
+const OBFUSCATED_TOKEN =
+  "••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••";
 
 interface AuthPageProps {
-  tab: "login" | "register"
+  tab: "login" | "register";
 }
 
 export function AuthPage({ tab }: AuthPageProps) {
-  const { login } = useAuth()
-  const [username, setUsername] = useState("")
-  const [token, setToken] = useState("")
-  const [err, setErr] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [registeredData, setRegisteredData] = useState<RegisterResponse | null>(null)
-  const [copied, setCopied] = useState(false)
-  const cancelledRef = useRef(false)
+  const { login } = useAuth();
+  const [username, setUsername] = useState("");
+  const [token, setToken] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [registeredData, setRegisteredData] = useState<RegisterResponse | null>(
+    null,
+  );
+  const [copied, setCopied] = useState(false);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     if (tab !== "register") {
-      setRegisteredData(null)
-      setErr("")
-      return
+      setRegisteredData(null);
+      setErr("");
+      return;
     }
 
-    cancelledRef.current = false
-    setErr("")
-    setLoading(true)
+    cancelledRef.current = false;
+    setErr("");
+    setLoading(true);
 
-    apiClient.register()
+    apiClient
+      .register()
       .then((res) => {
-        if (!cancelledRef.current) setRegisteredData(res)
+        if (!cancelledRef.current) setRegisteredData(res);
       })
       .catch((e) => {
         if (!cancelledRef.current) {
-          setErr(e instanceof Error ? e.message : "An error occurred")
+          setErr(e instanceof Error ? e.message : "An error occurred");
         }
       })
       .finally(() => {
-        if (!cancelledRef.current) setLoading(false)
-      })
+        if (!cancelledRef.current) setLoading(false);
+      });
 
-    return () => { cancelledRef.current = true }
-  }, [tab])
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, [tab]);
 
   const handleCopy = async (text: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErr("")
-    setLoading(true)
+    e.preventDefault();
+    setErr("");
+    setLoading(true);
     try {
-      const res = await apiClient.login({ username, token })
-      login(token, res.player_id, res.username)
+      const res = await apiClient.login({ username, token });
+      login(token, res.player_id, res.username);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "An error occurred")
+      setErr(e instanceof Error ? e.message : "An error occurred");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleContinue = () => {
-    if (!registeredData) return
-    login(registeredData.token, registeredData.player_id, registeredData.username)
-    setRegisteredData(null)
-  }
+    if (!registeredData) return;
+    login(
+      registeredData.token,
+      registeredData.player_id,
+      registeredData.username,
+    );
+    setRegisteredData(null);
+  };
 
   return (
     <>
@@ -116,16 +126,23 @@ export function AuthPage({ tab }: AuthPageProps) {
             <h2 className="text-xl font-bold">Account created!</h2>
 
             <p className="text-sm text-neutral-400">
-              Your username is <span className="font-semibold text-white">{registeredData.username}</span>.
+              Your username is{" "}
+              <span className="font-semibold text-white">
+                {registeredData.username}
+              </span>
+              .
             </p>
 
             <p className="text-sm text-neutral-400">
-              Your login token is shown below. Save it in a safe place — you'll need it
-              to log in on another device.
+              Your login token is shown below. Save it in a safe place — you'll
+              need it to log in on another device.
             </p>
 
-            <div className="bg-neutral-800 rounded p-3 font-mono text-sm break-all select-all">
-              {OBFUSCATED_TOKEN}
+            <div className="relative bg-neutral-800 rounded p-3 font-mono text-sm select-all overflow-hidden">
+              <span className="invisible" aria-hidden="true">
+                •
+              </span>
+              <div className="absolute inset-y-3 left-3 right-3 whitespace-nowrap overflow-hidden after:content-['••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••']"></div>
             </div>
 
             <Button
@@ -144,5 +161,5 @@ export function AuthPage({ tab }: AuthPageProps) {
         </div>
       )}
     </>
-  )
+  );
 }

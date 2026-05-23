@@ -1,191 +1,238 @@
-import { useState, useCallback, useRef, useEffect } from "react"
-import { useAuth } from "../context/AuthContext"
-import { useWebSocket } from "../hooks/useWebSocket"
-import { Card } from "../components/ui/Card"
-import { Button } from "../components/ui/Button"
-import { Badge } from "../components/ui/Badge"
-import type { ServerMessage, Move, GameStatus, MatchFoundMessage, RoundResultMessage, MatchResultMessage } from "../types"
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useWebSocket } from "../hooks/useWebSocket";
+import { Card } from "../components/ui/Card";
+import { Button } from "../components/ui/Button";
+import { Badge } from "../components/ui/Badge";
+import type {
+  ServerMessage,
+  Move,
+  GameStatus,
+  MatchFoundMessage,
+  RoundResultMessage,
+  MatchResultMessage,
+} from "../types";
+import {
+  Scissors,
+  Scroll,
+  Stone,
+  SwordsIcon,
+  X,
+  PlugZap,
+  type LucideIcon,
+  LoaderIcon,
+} from "lucide-react";
+import { Profilecard } from "../components/layout/ProfileCard";
 
-export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active: boolean) => void }) {
-  const { token } = useAuth()
-  const [status, setStatus] = useState<GameStatus>("idle")
-  const statusRef = useRef(status)
-  statusRef.current = status
-  const [position, setPosition] = useState(0)
-  const [match, setMatch] = useState<MatchFoundMessage | null>(null)
-  const [rounds, setRounds] = useState<RoundResultMessage[]>([])
-  const [resultMsg, setResultMsg] = useState<MatchResultMessage | null>(null)
-  const [myMove, setMyMove] = useState<Move | null>(null)
-  const [countdown, setCountdown] = useState<number | null>(null)
-  const [pendingResult, setPendingResult] = useState<RoundResultMessage | null>(null)
-  const [revealed, setRevealed] = useState(false)
-  const [error, setError] = useState("")
+export function PlayPage({
+  onGameActiveChange,
+}: {
+  onGameActiveChange?: (active: boolean) => void;
+}) {
+  const { token } = useAuth();
+  const [status, setStatus] = useState<GameStatus>("idle");
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  const [position, setPosition] = useState(0);
+  const [match, setMatch] = useState<MatchFoundMessage | null>(null);
+  const [rounds, setRounds] = useState<RoundResultMessage[]>([]);
+  const [resultMsg, setResultMsg] = useState<MatchResultMessage | null>(null);
+  const [myMove, setMyMove] = useState<Move | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [pendingResult, setPendingResult] = useState<RoundResultMessage | null>(
+    null,
+  );
+  const [revealed, setRevealed] = useState(false);
+  const [error, setError] = useState("");
 
-  const onMessage = useCallback((msg: ServerMessage) => {
-    switch (msg.type) {
-      case "queue_status":
-        setPosition(msg.position)
-        break
-      case "match_found":
-        setMatch(msg)
-        setRounds([])
-        setResultMsg(null)
-        setMyMove(null)
-        setCountdown(null)
-        setPendingResult(null)
-        setRevealed(false)
-        setStatus("playing")
-        setPosition(0)
-        onGameActiveChange?.(true)
-        break
-      case "round_result":
-        setPendingResult(msg)
-        setCountdown(3)
-        break
-      case "match_result":
-        setResultMsg(msg)
-        break
-      case "error":
-        setError(msg.message)
-        break
-    }
-  }, [onGameActiveChange])
+  const onMessage = useCallback(
+    (msg: ServerMessage) => {
+      switch (msg.type) {
+        case "queue_status":
+          setPosition(msg.position);
+          break;
+        case "match_found":
+          setMatch(msg);
+          setRounds([]);
+          setResultMsg(null);
+          setMyMove(null);
+          setCountdown(null);
+          setPendingResult(null);
+          setRevealed(false);
+          setStatus("playing");
+          setPosition(0);
+          onGameActiveChange?.(true);
+          break;
+        case "round_result":
+          setPendingResult(msg);
+          setCountdown(3);
+          break;
+        case "match_result":
+          setResultMsg(msg);
+          break;
+        case "error":
+          setError(msg.message);
+          break;
+      }
+    },
+    [onGameActiveChange],
+  );
 
-  const onOpen = useCallback(() => setStatus("connected"), [])
+  const onOpen = useCallback(() => setStatus("connected"), []);
   const onClose = useCallback(() => {
-    const prev = statusRef.current
+    const prev = statusRef.current;
     if (prev !== "idle" && prev !== "done") {
-      setError("Disconnected")
+      setError("Disconnected");
     }
-    setStatus("idle")
-    onGameActiveChange?.(false)
-  }, [onGameActiveChange])
+    setStatus("idle");
+    onGameActiveChange?.(false);
+  }, [onGameActiveChange]);
 
-  const { send } = useWebSocket(token, onMessage, onOpen, onClose)
+  const { send } = useWebSocket(token, onMessage, onOpen, onClose);
 
   useEffect(() => {
-    if (countdown === null || countdown <= 0) return
+    if (countdown === null || countdown <= 0) return;
     const t = setTimeout(() => {
       if (countdown === 1) {
-        setCountdown(0)
-        setRevealed(true)
+        setCountdown(0);
+        setRevealed(true);
         if (pendingResult) {
-          setRounds((prev) => [...prev, pendingResult])
+          setRounds((prev) => [...prev, pendingResult]);
         }
         setTimeout(() => {
-          setMyMove(null)
-          setCountdown(null)
-          setRevealed(false)
-          setPendingResult(null)
+          setMyMove(null);
+          setCountdown(null);
+          setRevealed(false);
+          setPendingResult(null);
           setResultMsg((prev) => {
-            if (prev) setStatus("done")
-            return prev
-          })
-        }, 1800)
+            if (prev) setStatus("done");
+            return prev;
+          });
+        }, 1800);
       } else {
-        setCountdown((c) => (c ?? 0) - 1)
+        setCountdown((c) => (c ?? 0) - 1);
       }
-    }, 1000)
-    return () => clearTimeout(t)
-  }, [countdown, pendingResult])
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [countdown, pendingResult]);
 
   const join = () => {
-    setError("")
-    send({ type: "join_queue" })
-    setStatus("queueing")
-  }
+    setError("");
+    send({ type: "join_queue" });
+    setStatus("queueing");
+  };
 
   const leave = () => {
-    send({ type: "leave_queue" })
-    setStatus("connected")
-    setPosition(0)
-    onGameActiveChange?.(false)
-  }
+    send({ type: "leave_queue" });
+    setStatus("connected");
+    setPosition(0);
+    onGameActiveChange?.(false);
+  };
 
   const makeMove = (move: Move) => {
-    if (myMove) return
-    setMyMove(move)
-    send({ type: "move", data: { move } })
-  }
+    if (myMove) return;
+    setMyMove(move);
+    send({ type: "move", data: { move } });
+  };
 
   const handlePlayAgain = () => {
-    setMatch(null)
-    setRounds([])
-    setResultMsg(null)
-    setMyMove(null)
-    setCountdown(null)
-    setPendingResult(null)
-    setRevealed(false)
-    join()
-  }
+    setMatch(null);
+    setRounds([]);
+    setResultMsg(null);
+    setMyMove(null);
+    setCountdown(null);
+    setPendingResult(null);
+    setRevealed(false);
+    join();
+  };
 
   const handleHome = () => {
-    send({ type: "leave_queue" })
-    setStatus("connected")
-    setMatch(null)
-    setRounds([])
-    setResultMsg(null)
-    setMyMove(null)
-    setCountdown(null)
-    setPendingResult(null)
-    setRevealed(false)
-    setError("")
-    onGameActiveChange?.(false)
-  }
+    send({ type: "leave_queue" });
+    setStatus("connected");
+    setMatch(null);
+    setRounds([]);
+    setResultMsg(null);
+    setMyMove(null);
+    setCountdown(null);
+    setPendingResult(null);
+    setRevealed(false);
+    setError("");
+    onGameActiveChange?.(false);
+  };
 
-  const moves: { label: string; move: Move; emoji: string }[] = [
-    { label: "Rock", move: "rock", emoji: "\u{1F5FF}" },
-    { label: "Paper", move: "paper", emoji: "\u{1F4C4}" },
-    { label: "Scissors", move: "scissors", emoji: "\u2702\uFE0F" },
-  ]
+  const moves: { label: string; move: Move; emoji: LucideIcon }[] = [
+    { label: "Rock", move: "rock", emoji: Stone },
+    { label: "Paper", move: "paper", emoji: Scroll },
+    { label: "Scissors", move: "scissors", emoji: Scissors },
+  ];
+
+  // Helper variables to locate the matching Icon components dynamically
+  const MyMoveIcon = moves.find((m) => m.move === myMove)?.emoji;
+  const OpponentMoveIcon = moves.find(
+    (m) => m.move === pendingResult?.opponent_move,
+  )?.emoji;
 
   return (
     <div className="space-y-4">
-      <Card className="text-center space-y-3">
+      <Profilecard />
+      <div className="text-center my-6">
         {status === "idle" && (
-          <p className="text-neutral-500">Connecting...</p>
+          <Button variant="secondary" icon={PlugZap}>
+            Connecting to game server
+            <span className="animate-dot">.</span>
+            <span className="animate-dot-2">.</span>
+            <span className="animate-dot-3">.</span>
+          </Button>
         )}
 
         {status === "connected" && (
-          <>
-            <p className="text-emerald-400 font-semibold">Connected</p>
-            <Button onClick={join}>Join Queue</Button>
-          </>
+          <Button onClick={join} icon={SwordsIcon}>
+            Find match
+          </Button>
         )}
 
         {status === "queueing" && (
-          <>
-            <p className="text-yellow-400">
-              In queue{position > 0 && ` (#${position})`}...
-            </p>
-            <Button variant="danger" onClick={leave}>Leave</Button>
-          </>
+          <Button variant="secondary" onClick={leave} icon={X}>
+            Searching for opponent
+            <span className="animate-dot">.</span>
+            <span className="animate-dot-2">.</span>
+            <span className="animate-dot-3">.</span>
+          </Button>
         )}
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
-      </Card>
+      </div>
 
       {(status === "playing" || status === "done") && match && (
         <div className="space-y-4">
           <Card className="text-center">
             <p className="text-sm text-neutral-400">
-              vs <span className="font-semibold text-emerald-400">{match.opponent}</span>
-              {" "}<span className="text-neutral-500">({match.opponent_rating})</span>
+              vs{" "}
+              <span className="font-semibold text-emerald-400">
+                {match.opponent}
+              </span>{" "}
+              <span className="text-neutral-500">
+                ({match.opponent_rating})
+              </span>
             </p>
           </Card>
 
           {status === "playing" && myMove === null && (
             <div className="space-y-3">
-              <p className="text-center text-sm text-neutral-400">Choose your move!</p>
+              <p className="text-center text-sm text-neutral-400">
+                Choose your move!
+              </p>
               <div className="grid grid-cols-3 gap-3">
-                {moves.map(({ label, move, emoji }) => (
+                {moves.map(({ label, move, emoji: ButtonIcon }) => (
                   <button
                     key={move}
                     onClick={() => makeMove(move)}
-                    className="flex flex-col items-center justify-center min-h-[88px] bg-neutral-800 hover:bg-neutral-700 hover:scale-105 active:scale-95 rounded-xl border border-neutral-700 transition-all duration-150"
+                    className="flex flex-col items-center justify-center min-h-22 bg-neutral-800 hover:bg-neutral-700 hover:scale-105 active:scale-95 rounded-xl border border-neutral-700 transition-all duration-150 p-4"
                   >
-                    <span className="text-3xl mb-1">{emoji}</span>
-                    <span className="text-xs font-medium text-neutral-300">{label}</span>
+                    <ButtonIcon className="w-8 h-8 mb-2 text-neutral-200" />
+                    <span className="text-xs font-medium text-neutral-300">
+                      {label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -196,8 +243,12 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
             <div className="relative">
               <div className="flex items-center justify-center gap-4 sm:gap-12">
                 <div className="flex flex-col items-center w-32 sm:w-40">
-                  <div className={`text-5xl sm:text-6xl mb-2 transition-transform duration-300 ${revealed ? "scale-100" : "scale-110"}`}>
-                    {moves.find((m) => m.move === myMove)?.emoji}
+                  <div
+                    className={`mb-2 transition-transform duration-300 ${revealed ? "scale-100" : "scale-110"}`}
+                  >
+                    {MyMoveIcon && (
+                      <MyMoveIcon className="w-12 h-12 sm:w-16 sm:h-16 text-emerald-400" />
+                    )}
                   </div>
                   <span className="text-sm font-medium text-neutral-300">
                     {moves.find((m) => m.move === myMove)?.label}
@@ -208,18 +259,28 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
 
                 <div className="flex flex-col items-center w-32 sm:w-40">
                   {revealed && pendingResult ? (
-                    <div className="animate-flip-in">
-                      <div className="text-5xl sm:text-6xl mb-2">
-                        {moves.find((m) => m.move === pendingResult.opponent_move)?.emoji}
+                    <div className="animate-flip-in flex flex-col items-center">
+                      <div className="mb-2">
+                        {OpponentMoveIcon && (
+                          <OpponentMoveIcon className="w-12 h-12 sm:w-16 sm:h-16 text-red-400" />
+                        )}
                       </div>
                       <span className="text-sm font-medium text-neutral-300">
-                        {moves.find((m) => m.move === pendingResult.opponent_move)?.label}
+                        {
+                          moves.find(
+                            (m) => m.move === pendingResult.opponent_move,
+                          )?.label
+                        }
                       </span>
                     </div>
                   ) : (
-                    <div className="backdrop-blur-sm bg-neutral-800/50 rounded-xl p-4 animate-pulse">
-                      <div className="text-5xl sm:text-6xl mb-2">❓</div>
-                      <span className="text-sm font-medium text-neutral-400">???</span>
+                    <div className="backdrop-blur-sm bg-neutral-800/50 rounded-xl p-4 animate-pulse flex flex-col items-center justify-center min-h-[80px] min-w-[80px]">
+                      <div className="text-3xl mb-2">
+                        <LoaderIcon className="animate-spin" />
+                      </div>
+                      <span className="text-sm font-medium text-neutral-400">
+                        Waiting for opponent to lock in
+                      </span>
                     </div>
                   )}
                 </div>
@@ -236,7 +297,10 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
 
               {countdown !== null && !revealed && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span key={countdown} className="text-8xl font-bold text-emerald-400 animate-ping">
+                  <span
+                    key={countdown}
+                    className="text-8xl font-bold text-emerald-400 animate-ping"
+                  >
                     {countdown}
                   </span>
                 </div>
@@ -244,10 +308,24 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
 
               {revealed && pendingResult && (
                 <div className="text-center mt-4 space-y-1 animate-bounce">
-                  <Badge variant={pendingResult.result === "win" ? "win" : pendingResult.result === "loss" ? "loss" : "draw"}>
-                    {pendingResult.result === "win" ? "WIN" : pendingResult.result === "loss" ? "LOSS" : "TIE"}
+                  <Badge
+                    variant={
+                      pendingResult.result === "win"
+                        ? "win"
+                        : pendingResult.result === "loss"
+                          ? "loss"
+                          : "draw"
+                    }
+                  >
+                    {pendingResult.result === "win"
+                      ? "WIN"
+                      : pendingResult.result === "loss"
+                        ? "LOSS"
+                        : "TIE"}
                   </Badge>
-                  <span className="text-neutral-500 ml-1">{pendingResult.score[0]}-{pendingResult.score[1]}</span>
+                  <span className="text-neutral-500 ml-1">
+                    {pendingResult.score[0]}-{pendingResult.score[1]}
+                  </span>
                 </div>
               )}
             </div>
@@ -256,15 +334,32 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
           {rounds.length > 0 && (
             <div className="space-y-1">
               {rounds.map((r) => (
-                <Card key={r.round} className="flex justify-between items-center py-2">
+                <Card
+                  key={r.round}
+                  className="flex justify-between items-center py-2"
+                >
                   <span className="text-sm text-neutral-300">
                     R{r.round}: {r.your_move} vs {r.opponent_move}
                   </span>
                   <span className="text-sm">
-                    <Badge variant={r.result === "win" ? "win" : r.result === "loss" ? "loss" : "draw"}>
-                      {r.result === "win" ? "W" : r.result === "loss" ? "L" : "T"}
+                    <Badge
+                      variant={
+                        r.result === "win"
+                          ? "win"
+                          : r.result === "loss"
+                            ? "loss"
+                            : "draw"
+                      }
+                    >
+                      {r.result === "win"
+                        ? "W"
+                        : r.result === "loss"
+                          ? "L"
+                          : "T"}
                     </Badge>
-                    <span className="text-neutral-500 ml-1">{r.score[0]}-{r.score[1]}</span>
+                    <span className="text-neutral-500 ml-1">
+                      {r.score[0]}-{r.score[1]}
+                    </span>
                   </span>
                 </Card>
               ))}
@@ -274,27 +369,48 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
           {resultMsg && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <Card className="text-center space-y-3 max-w-sm w-full">
-                <p className={`text-2xl font-bold ${
-                  resultMsg.winner === "you" ? "text-emerald-400" :
-                  resultMsg.winner === "opponent" ? "text-red-400" : "text-neutral-400"
-                }`}>
-                  {resultMsg.winner === "you" ? "You Win!" :
-                   resultMsg.winner === "opponent" ? "You Lose" : "Draw"}
+                <p
+                  className={`text-2xl font-bold ${
+                    resultMsg.winner === "you"
+                      ? "text-emerald-400"
+                      : resultMsg.winner === "opponent"
+                        ? "text-red-400"
+                        : "text-neutral-400"
+                  }`}
+                >
+                  {resultMsg.winner === "you"
+                    ? "You Win!"
+                    : resultMsg.winner === "opponent"
+                      ? "You Lose"
+                      : "Draw"}
                 </p>
                 <p className="text-sm text-neutral-400">
-                  <Badge variant={resultMsg.rating_change > 0 ? "win" : resultMsg.rating_change < 0 ? "loss" : "draw"}>
-                    {resultMsg.rating_change > 0 ? "+" : ""}{resultMsg.rating_change}
+                  <Badge
+                    variant={
+                      resultMsg.rating_change > 0
+                        ? "win"
+                        : resultMsg.rating_change < 0
+                          ? "loss"
+                          : "draw"
+                    }
+                  >
+                    {resultMsg.rating_change > 0 ? "+" : ""}
+                    {resultMsg.rating_change}
                   </Badge>
                   {" \u00b7 "}
                   {resultMsg.final_score[0]}-{resultMsg.final_score[1]}
                 </p>
-                <Button onClick={handlePlayAgain} className="w-full">Play Again</Button>
-                <Button variant="ghost" onClick={handleHome} className="w-full">Back to Menu</Button>
+                <Button onClick={handlePlayAgain} className="w-full" icon={SwordsIcon}>
+                  Play Again
+                </Button>
+                <Button variant="ghost" onClick={handleHome} className="w-full" icon={X}>
+                  Back to Menu
+                </Button>
               </Card>
             </div>
           )}
         </div>
       )}
     </div>
-  )
+  );
 }
