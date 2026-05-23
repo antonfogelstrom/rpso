@@ -46,7 +46,7 @@ export default function App() {
         </div>
       </nav>
       {view === 'dash' && <Dashboard playerId={playerId} token={token} />}
-      {view === 'lb' && <Leaderboard />}
+      {view === 'lb' && <Leaderboard token={token} />}
       {view === 'play' && <GameView playerId={playerId} username={username} token={token} />}
     </div>
   )
@@ -132,14 +132,14 @@ function Dashboard({ playerId, token }) {
   )
 }
 
-function Leaderboard() {
+function Leaderboard({ token }) {
   const [players, setPlayers] = useState([])
   const [err, setErr] = useState('')
 
   useEffect(() => {
-    API('/api/leaderboard?limit=20')
+    API('/api/leaderboard?limit=20', { headers: { Authorization: `Bearer ${token}` } })
       .then(setPlayers).catch(e => setErr(e.message))
-  }, [])
+  }, [token])
 
   if (err) return <p className="text-red-400">{err}</p>
 

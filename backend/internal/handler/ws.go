@@ -53,7 +53,15 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	responseHeader := http.Header{}
+	for _, p := range protocols {
+		if strings.HasPrefix(p, "bearer-") {
+			responseHeader.Set("Sec-WebSocket-Protocol", p)
+			break
+		}
+	}
+
+	conn, err := upgrader.Upgrade(w, r, responseHeader)
 	if err != nil {
 		log.Printf("ws upgrade failed: %v", err)
 		return
