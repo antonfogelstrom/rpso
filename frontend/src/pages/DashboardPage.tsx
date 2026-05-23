@@ -1,11 +1,22 @@
+import { useState } from "react"
 import { useAuth } from "../context/AuthContext"
 import { useProfile } from "../hooks/useProfile"
 import { Card } from "../components/ui/Card"
 import { Badge } from "../components/ui/Badge"
+import { Button } from "../components/ui/Button"
+
+const OBFUSCATED_TOKEN = "••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"
 
 export function DashboardPage() {
   const { token, playerId, username } = useAuth()
   const { profile, matches, loading, error } = useProfile(token, playerId)
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(token!)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   if (loading) return <p className="text-neutral-500 text-center">Loading...</p>
   if (error) return <p className="text-red-400 text-center">{error}</p>
@@ -22,6 +33,25 @@ export function DashboardPage() {
           <Badge variant="loss">{profile?.losses}L</Badge>
           <Badge variant="draw">{profile?.draws}D</Badge>
           <Badge variant="neutral">{profile?.total_matches} total</Badge>
+        </div>
+      </Card>
+
+      <Card className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-neutral-400 uppercase tracking-wide">
+            Login Token
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            className="text-xs px-3 py-1 min-h-0"
+            onClick={handleCopy}
+          >
+            {copied ? "Copied!" : "Copy"}
+          </Button>
+        </div>
+        <div className="bg-neutral-800 rounded p-3 font-mono text-sm break-all select-all text-neutral-500">
+          {OBFUSCATED_TOKEN}
         </div>
       </Card>
 
