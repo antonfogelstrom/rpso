@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+@keyframes flip-in {
+  0% { transform: rotateY(180deg); opacity: 0; }
+  100% { transform: rotateY(0deg); opacity: 1; }
+}
+@keyframes dot-pulse {
+  0%, 20% { opacity: 0; }
+  50% { opacity: 1; }
+  80%, 100% { opacity: 0; }
+}
+.animate-flip-in { animation: flip-in 0.4s ease-out; }
+.animate-dot { animation: dot-pulse 1.5s infinite; }
+.animate-dot-2 { animation: dot-pulse 1.5s infinite 0.3s; }
+.animate-dot-3 { animation: dot-pulse 1.5s infinite 0.6s; }

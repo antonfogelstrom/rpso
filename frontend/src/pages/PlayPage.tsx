@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { useAuth } from "../context/AuthContext"
 import { useWebSocket } from "../hooks/useWebSocket"
 import { Card } from "../components/ui/Card"
@@ -15,6 +15,10 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
   const [match, setMatch] = useState<MatchFoundMessage | null>(null)
   const [rounds, setRounds] = useState<RoundResultMessage[]>([])
   const [resultMsg, setResultMsg] = useState<MatchResultMessage | null>(null)
+  const [myMove, setMyMove] = useState<Move | null>(null)
+  const [countdown, setCountdown] = useState<number | null>(null)
+  const [pendingResult, setPendingResult] = useState<RoundResultMessage | null>(null)
+  const [revealed, setRevealed] = useState(false)
   const [error, setError] = useState("")
 
   const onMessage = useCallback((msg: ServerMessage) => {
@@ -26,16 +30,20 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
         setMatch(msg)
         setRounds([])
         setResultMsg(null)
+        setMyMove(null)
+        setCountdown(null)
+        setPendingResult(null)
+        setRevealed(false)
         setStatus("playing")
         setPosition(0)
         onGameActiveChange?.(true)
         break
       case "round_result":
-        setRounds((prev) => [...prev, msg])
+        setPendingResult(msg)
+        setCountdown(3)
         break
       case "match_result":
         setResultMsg(msg)
-        setStatus("done")
         break
       case "error":
         setError(msg.message)
@@ -55,6 +63,32 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
 
   const { send } = useWebSocket(token, onMessage, onOpen, onClose)
 
+  useEffect(() => {
+    if (countdown === null || countdown <= 0) return
+    const t = setTimeout(() => {
+      if (countdown === 1) {
+        setCountdown(0)
+        setRevealed(true)
+        if (pendingResult) {
+          setRounds((prev) => [...prev, pendingResult])
+        }
+        setTimeout(() => {
+          setMyMove(null)
+          setCountdown(null)
+          setRevealed(false)
+          setPendingResult(null)
+          setResultMsg((prev) => {
+            if (prev) setStatus("done")
+            return prev
+          })
+        }, 1800)
+      } else {
+        setCountdown((c) => (c ?? 0) - 1)
+      }
+    }, 1000)
+    return () => clearTimeout(t)
+  }, [countdown, pendingResult])
+
   const join = () => {
     setError("")
     send({ type: "join_queue" })
@@ -69,6 +103,8 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
   }
 
   const makeMove = (move: Move) => {
+    if (myMove) return
+    setMyMove(move)
     send({ type: "move", data: { move } })
   }
 
@@ -76,6 +112,10 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
     setMatch(null)
     setRounds([])
     setResultMsg(null)
+    setMyMove(null)
+    setCountdown(null)
+    setPendingResult(null)
+    setRevealed(false)
     join()
   }
 
@@ -85,6 +125,10 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
     setMatch(null)
     setRounds([])
     setResultMsg(null)
+    setMyMove(null)
+    setCountdown(null)
+    setPendingResult(null)
+    setRevealed(false)
     setError("")
     onGameActiveChange?.(false)
   }
@@ -130,19 +174,84 @@ export function PlayPage({ onGameActiveChange }: { onGameActiveChange?: (active:
             </p>
           </Card>
 
-          <div className="grid grid-cols-3 gap-3">
-            {moves.map(({ label, move, emoji }) => (
-              <button
-                key={move}
-                onClick={() => makeMove(move)}
-                disabled={status === "done"}
-                className="flex flex-col items-center justify-center min-h-[88px] bg-neutral-800 hover:bg-neutral-700 disabled:opacity-30 rounded-xl border border-neutral-700 transition-colors"
-              >
-                <span className="text-3xl mb-1">{emoji}</span>
-                <span className="text-xs font-medium text-neutral-300">{label}</span>
-              </button>
-            ))}
-          </div>
+          {status === "playing" && myMove === null && (
+            <div className="space-y-3">
+              <p className="text-center text-sm text-neutral-400">Choose your move!</p>
+              <div className="grid grid-cols-3 gap-3">
+                {moves.map(({ label, move, emoji }) => (
+                  <button
+                    key={move}
+                    onClick={() => makeMove(move)}
+                    className="flex flex-col items-center justify-center min-h-[88px] bg-neutral-800 hover:bg-neutral-700 hover:scale-105 active:scale-95 rounded-xl border border-neutral-700 transition-all duration-150"
+                  >
+                    <span className="text-3xl mb-1">{emoji}</span>
+                    <span className="text-xs font-medium text-neutral-300">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {myMove !== null && (
+            <div className="relative">
+              <div className="flex items-center justify-center gap-4 sm:gap-12">
+                <div className="flex flex-col items-center w-32 sm:w-40">
+                  <div className={`text-5xl sm:text-6xl mb-2 transition-transform duration-300 ${revealed ? "scale-100" : "scale-110"}`}>
+                    {moves.find((m) => m.move === myMove)?.emoji}
+                  </div>
+                  <span className="text-sm font-medium text-neutral-300">
+                    {moves.find((m) => m.move === myMove)?.label}
+                  </span>
+                </div>
+
+                <div className="text-2xl font-bold text-neutral-500">VS</div>
+
+                <div className="flex flex-col items-center w-32 sm:w-40">
+                  {revealed && pendingResult ? (
+                    <div className="animate-flip-in">
+                      <div className="text-5xl sm:text-6xl mb-2">
+                        {moves.find((m) => m.move === pendingResult.opponent_move)?.emoji}
+                      </div>
+                      <span className="text-sm font-medium text-neutral-300">
+                        {moves.find((m) => m.move === pendingResult.opponent_move)?.label}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="backdrop-blur-sm bg-neutral-800/50 rounded-xl p-4 animate-pulse">
+                      <div className="text-5xl sm:text-6xl mb-2">❓</div>
+                      <span className="text-sm font-medium text-neutral-400">???</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {!revealed && (
+                <p className="text-center text-sm text-neutral-400 mt-4">
+                  Waiting
+                  <span className="animate-dot">.</span>
+                  <span className="animate-dot-2">.</span>
+                  <span className="animate-dot-3">.</span>
+                </p>
+              )}
+
+              {countdown !== null && !revealed && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span key={countdown} className="text-8xl font-bold text-emerald-400 animate-ping">
+                    {countdown}
+                  </span>
+                </div>
+              )}
+
+              {revealed && pendingResult && (
+                <div className="text-center mt-4 space-y-1 animate-bounce">
+                  <Badge variant={pendingResult.result === "win" ? "win" : pendingResult.result === "loss" ? "loss" : "draw"}>
+                    {pendingResult.result === "win" ? "WIN" : pendingResult.result === "loss" ? "LOSS" : "TIE"}
+                  </Badge>
+                  <span className="text-neutral-500 ml-1">{pendingResult.score[0]}-{pendingResult.score[1]}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {rounds.length > 0 && (
             <div className="space-y-1">
