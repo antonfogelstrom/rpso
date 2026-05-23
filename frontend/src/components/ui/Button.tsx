@@ -27,7 +27,7 @@ export function Button({
       className={`inline-flex items-center justify-center min-h-11 rounded-full cursor-pointer font-medium disabled:opacity-50 px-4 py-2 ${variants[variant]} ${className}`}
       {...props}
     >
-      <div className="flex gap-1 items-center">
+      <div className="flex gap-1 items-center align-middle">
         {Icon && <Icon className="w-5 h-5" />}
         {children}
       </div>

@@ -39,7 +39,10 @@ function AppContent() {
     >
       {isLoggedIn ? (
         <>
-          <span className="font-semibold block mb-6">RPSO</span>
+          <div className="flex align-middle items-center mb-6 gap-1">
+            <span className="font-semibold text-2xl">RPSO</span>
+            <span className="text-sm"> | rock paper scissors online</span>
+          </div>
 
           {view === "dash" && <DashboardPage />}
           {view === "lb" && <LeaderboardPage />}
