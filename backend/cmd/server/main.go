@@ -83,10 +83,14 @@ func main() {
 
 	r.Post("/api/register", h.Register)
 	r.Post("/api/login", h.Login)
-	r.Get("/api/players/{id}", h.GetPlayerProfile)
-	r.Get("/api/players/{id}/matches", h.GetPlayerMatches)
-	r.Get("/api/leaderboard", h.GetLeaderboard)
 	r.Get("/api/ws", h.HandleWebSocket)
+
+	r.Group(func(r chi.Router) {
+		r.Use(auth.Middleware(sessionStore))
+		r.Get("/api/players/{id}", h.GetPlayerProfile)
+		r.Get("/api/players/{id}/matches", h.GetPlayerMatches)
+		r.Get("/api/leaderboard", h.GetLeaderboard)
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
