@@ -86,13 +86,15 @@ func main() {
 
 	r.Post("/api/register", h.Register)
 	r.Post("/api/login", h.Login)
+	r.Post("/api/logout", h.Logout)
 	r.Get("/api/ws", h.HandleWebSocket)
 
-	r.Group(func(r chi.Router) {
+		r.Group(func(r chi.Router) {
 		r.Use(auth.Middleware(sessionStore))
 		r.Get("/api/players/{id}", h.GetPlayerProfile)
 		r.Get("/api/players/{id}/matches", h.GetPlayerMatches)
 		r.Get("/api/leaderboard", h.GetLeaderboard)
+		r.Post("/api/token/rotate", h.RotateToken)
 	})
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -163,7 +165,9 @@ func corsMiddleware(allowedOrigins map[string]bool) func(http.Handler) http.Hand
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 			}
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Vary", "Origin")
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)
 				return

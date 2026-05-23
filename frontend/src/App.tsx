@@ -5,20 +5,19 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { PlayPage } from "./pages/PlayPage";
 import { PageLayout } from "./components/layout/PageLayout";
-import { Button } from "./components/ui/Button";
 import type { View } from "./types";
 import type { Tab } from "./components/layout/BottomNav";
 
 function AppContent() {
-  const { token, username, logout } = useAuth();
+  const { playerId } = useAuth();
   const [view, setView] = useState<View>("login");
   const [gameActive, setGameActive] = useState(false);
 
   useEffect(() => {
-    if (token) setView("dash");
-  }, [token]);
+    if (playerId) setView("dash");
+  }, [playerId]);
 
-  const isLoggedIn = !!token;
+  const isLoggedIn = !!playerId;
 
   const authTabs: Tab[] = [
     { id: "login", label: "Login" },
@@ -40,12 +39,7 @@ function AppContent() {
     >
       {isLoggedIn ? (
         <>
-          <div className="flex items-center justify-between mb-6">
-            <span className="font-semibold">RPSO</span>
-            <Button variant="ghost" onClick={logout}>
-              Logout
-            </Button>
-          </div>
+          <span className="font-semibold block mb-6">RPSO</span>
 
           {view === "dash" && <DashboardPage />}
           {view === "lb" && <LeaderboardPage />}

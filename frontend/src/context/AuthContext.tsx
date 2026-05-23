@@ -1,40 +1,42 @@
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { setOnUnauthorized } from "../lib/api"
+import { apiClient } from "../lib/api"
 
 interface AuthContextValue {
-  token: string | null
   playerId: string | null
   username: string | null
-  login: (token: string, playerId: string, username: string) => void
+  login: (playerId: string, username: string) => void
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"))
   const [playerId, setPlayerId] = useState<string | null>(() => localStorage.getItem("playerId"))
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem("username"))
 
-  const login = (t: string, pid: string, u: string) => {
-    localStorage.setItem("token", t)
+  const login = (pid: string, u: string) => {
     localStorage.setItem("playerId", pid)
     localStorage.setItem("username", u)
-    setToken(t)
     setPlayerId(pid)
     setUsername(u)
   }
 
   const logout = () => {
-    localStorage.removeItem("token")
+    apiClient.logout().catch(() => {})
     localStorage.removeItem("playerId")
     localStorage.removeItem("username")
-    setToken(null)
     setPlayerId(null)
     setUsername(null)
   }
 
+  useEffect(() => {
+    setOnUnauthorized(logout)
+    return () => setOnUnauthorized(null)
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ token, playerId, username, login, logout }}>
+    <AuthContext.Provider value={{ playerId, username, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

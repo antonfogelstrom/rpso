@@ -9,14 +9,14 @@ interface UseProfileResult {
   error: string | null
 }
 
-export function useProfile(token: string | null, playerId: string | null): UseProfileResult {
+export function useProfile(playerId: string | null): UseProfileResult {
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!token || !playerId) {
+    if (!playerId) {
       setLoading(false)
       return
     }
@@ -25,8 +25,8 @@ export function useProfile(token: string | null, playerId: string | null): UsePr
     setError(null)
 
     Promise.all([
-      apiClient.getProfile(token, playerId),
-      apiClient.getMatches(token, playerId, 10),
+      apiClient.getProfile(playerId),
+      apiClient.getMatches(playerId, 10),
     ])
       .then(([profileData, matchesData]) => {
         setProfile(profileData)
@@ -34,7 +34,7 @@ export function useProfile(token: string | null, playerId: string | null): UsePr
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [token, playerId])
+  }, [playerId])
 
   return { profile, matches, loading, error }
 }

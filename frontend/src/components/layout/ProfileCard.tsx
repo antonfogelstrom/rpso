@@ -4,8 +4,8 @@ import { useProfile } from "../../hooks/useProfile";
 import { Badge } from "../ui/Badge";
 
 export function Profilecard() {
-  const { token, playerId, username } = useAuth();
-  const { profile } = useProfile(token, playerId);
+  const { playerId, username } = useAuth();
+  const { profile } = useProfile(playerId);
 
   return (
     <Card className="space-y-2">

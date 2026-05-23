@@ -69,6 +69,15 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	h.session.Set(token, player.ID)
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    token,
+		Path:     "/",
+		MaxAge:   86400,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	writeJSON(w, http.StatusCreated, envelope{
 		Data: registerResponse{
 			PlayerID: player.ID.String(),

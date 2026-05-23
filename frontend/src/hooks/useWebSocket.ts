@@ -3,7 +3,6 @@ import { GameSocket } from "../lib/ws"
 import type { ServerMessage, ClientMessage } from "../types"
 
 export function useWebSocket(
-  token: string | null,
   onMessage: (msg: ServerMessage) => void,
   onOpen?: () => void,
   onClose?: () => void,
@@ -18,9 +17,7 @@ export function useWebSocket(
   onCloseRef.current = onClose
 
   useEffect(() => {
-    if (!token) return
-
-    const socket = new GameSocket(token)
+    const socket = new GameSocket()
     socketRef.current = socket
 
     socket.onMessage((msg) => onMessageRef.current?.(msg))
@@ -32,7 +29,7 @@ export function useWebSocket(
       socket.disconnect()
       socketRef.current = null
     }
-  }, [token])
+  }, [])
 
   const send = useCallback((msg: ClientMessage) => {
     socketRef.current?.send(msg)

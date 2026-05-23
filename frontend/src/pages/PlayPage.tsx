@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -29,11 +28,9 @@ export function PlayPage({
 }: {
   onGameActiveChange?: (active: boolean) => void;
 }) {
-  const { token } = useAuth();
   const [status, setStatus] = useState<GameStatus>("idle");
   const statusRef = useRef(status);
   statusRef.current = status;
-  const [position, setPosition] = useState(0);
   const [match, setMatch] = useState<MatchFoundMessage | null>(null);
   const [rounds, setRounds] = useState<RoundResultMessage[]>([]);
   const [resultMsg, setResultMsg] = useState<MatchResultMessage | null>(null);
@@ -51,7 +48,6 @@ export function PlayPage({
     (msg: ServerMessage) => {
       switch (msg.type) {
         case "queue_status":
-          setPosition(msg.position);
           break;
         case "match_found":
           setMatch(msg);
@@ -64,7 +60,6 @@ export function PlayPage({
           setMoveTimeout(msg.move_timeout);
           setChoiceTimeLeft(msg.move_timeout);
           setStatus("playing");
-          setPosition(0);
           onGameActiveChange?.(true);
           break;
         case "round_result":
@@ -92,7 +87,7 @@ export function PlayPage({
     onGameActiveChange?.(false);
   }, [onGameActiveChange]);
 
-  const { send } = useWebSocket(token, onMessage, onOpen, onClose);
+  const { send } = useWebSocket(onMessage, onOpen, onClose);
 
   useEffect(() => {
     if (countdown === null || countdown <= 0) return;
@@ -138,7 +133,6 @@ export function PlayPage({
   const leave = () => {
     send({ type: "leave_queue" });
     setStatus("connected");
-    setPosition(0);
     onGameActiveChange?.(false);
   };
 
@@ -184,7 +178,6 @@ export function PlayPage({
     { label: "Scissors", move: "scissors", emoji: Scissors },
   ];
 
-  // Helper variables to locate the matching Icon components dynamically
   const MyMoveIcon = moves.find((m) => m.move === myMove)?.emoji;
   const OpponentMoveIcon = moves.find(
     (m) => m.move === pendingResult?.opponent_move,

@@ -2,7 +2,6 @@ import type { ServerMessage, ClientMessage } from "../types"
 
 export class GameSocket {
   private ws: WebSocket | null = null
-  private token: string
   private onMessageCallback: ((msg: ServerMessage) => void) | null = null
   private onOpenCallback: (() => void) | null = null
   private onCloseCallback: (() => void) | null = null
@@ -10,14 +9,10 @@ export class GameSocket {
   private maxRetries = 5
   private retries = 0
 
-  constructor(token: string) {
-    this.token = token
-  }
-
   connect() {
     const protocol = location.protocol === "https:" ? "wss:" : "ws:"
     const host = import.meta.env.DEV ? "localhost:8080" : location.host
-    this.ws = new WebSocket(`${protocol}//${host}/api/ws`, [`bearer-${this.token}`])
+    this.ws = new WebSocket(`${protocol}//${host}/api/ws`)
 
     this.ws.onopen = () => {
       this.retries = 0

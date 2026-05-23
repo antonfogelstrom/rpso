@@ -3,7 +3,6 @@ package handler
 import (
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/antonfogelstrom/rpso/internal/auth"
 	"github.com/antonfogelstrom/rpso/internal/ws"
@@ -11,18 +10,12 @@ import (
 )
 
 func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	protocols := websocket.Subprotocols(r)
-	var token string
-	for _, p := range protocols {
-		if strings.HasPrefix(p, "bearer-") {
-			token = strings.TrimPrefix(p, "bearer-")
-			break
-		}
-	}
-	if token == "" {
-		writeError(w, http.StatusUnauthorized, "MISSING_TOKEN", "token required via Sec-WebSocket-Protocol header")
+	cookie, err := r.Cookie("session_token")
+	if err != nil || cookie.Value == "" {
+		writeError(w, http.StatusUnauthorized, "MISSING_TOKEN", "token required via cookie")
 		return
 	}
+	token := cookie.Value
 
 	playerID, ok := h.session.Get(token)
 	if !ok {
@@ -53,15 +46,7 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	responseHeader := http.Header{}
-	for _, p := range protocols {
-		if strings.HasPrefix(p, "bearer-") {
-			responseHeader.Set("Sec-WebSocket-Protocol", p)
-			break
-		}
-	}
-
-	conn, err := upgrader.Upgrade(w, r, responseHeader)
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("ws upgrade failed: %v", err)
 		return

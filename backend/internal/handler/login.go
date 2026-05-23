@@ -66,6 +66,15 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	h.session.Set(req.Token, player.ID)
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    req.Token,
+		Path:     "/",
+		MaxAge:   86400,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	writeJSON(w, http.StatusOK, envelope{
 		Data: loginResponse{
 			PlayerID: player.ID.String(),

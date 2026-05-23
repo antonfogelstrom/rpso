@@ -5,9 +5,6 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import type { RegisterResponse } from "../types";
 
-const OBFUSCATED_TOKEN =
-  "••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••";
-
 interface AuthPageProps {
   tab: "login" | "register";
 }
@@ -66,7 +63,7 @@ export function AuthPage({ tab }: AuthPageProps) {
     setLoading(true);
     try {
       const res = await apiClient.login({ username, token });
-      login(token, res.player_id, res.username);
+      login(res.player_id, res.username);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "An error occurred");
     } finally {
@@ -77,7 +74,6 @@ export function AuthPage({ tab }: AuthPageProps) {
   const handleContinue = () => {
     if (!registeredData) return;
     login(
-      registeredData.token,
       registeredData.player_id,
       registeredData.username,
     );

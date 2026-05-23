@@ -69,6 +69,12 @@ func (r *PlayerRepo) UpdateRatingTx(ctx context.Context, tx pgx.Tx, id uuid.UUID
 	return err
 }
 
+func (r *PlayerRepo) UpdateToken(ctx context.Context, id uuid.UUID, tokenHash string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE players SET token_hash = $1 WHERE id = $2`, tokenHash, id)
+	return err
+}
+
 func (r *PlayerRepo) UpdateRating(ctx context.Context, id uuid.UUID, newRating int) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE players SET rating = $1 WHERE id = $2`, newRating, id)

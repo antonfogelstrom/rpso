@@ -8,18 +8,17 @@ import { Profilecard } from "../components/layout/ProfileCard";
 import { useProfile } from "../hooks/useProfile";
 
 export function LeaderboardPage() {
-  const { token, playerId } = useAuth();
+  const { playerId } = useAuth();
   const [players, setPlayers] = useState<Player[]>([]);
   const [err, setErr] = useState<string | null>(null);
-  const { profile } = useProfile(token, playerId);
+  const { profile } = useProfile(playerId);
 
   useEffect(() => {
-    if (!token) return;
     apiClient
-      .getLeaderboard(token, 20)
+      .getLeaderboard(20)
       .then(setPlayers)
       .catch((e: Error) => setErr(e.message));
-  }, [token]);
+  }, []);
 
   if (err) return <p className="text-red-400 text-center">{err}</p>;
 

@@ -1,20 +1,42 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useProfile } from "../hooks/useProfile";
+import { apiClient } from "../lib/api";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Profilecard } from "../components/layout/ProfileCard";
 
 export function DashboardPage() {
-  const { token, playerId } = useAuth();
-  const { matches, loading, error } = useProfile(token, playerId);
+  const { playerId, logout } = useAuth();
+  const { matches, loading, error } = useProfile(playerId);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showRotateConfirm, setShowRotateConfirm] = useState(false);
+  const [rotatedToken, setRotatedToken] = useState<string | null>(null);
+  const [rotating, setRotating] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(token!);
+  const handleRotate = async () => {
+    setRotating(true);
+    try {
+      const res = await apiClient.rotateToken();
+      setRotatedToken(res.token);
+    } catch {
+      setShowRotateConfirm(false);
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  const handleCopy = async (text: string) => {
+    await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const closeRotatedModal = () => {
+    setRotatedToken(null);
+    setCopied(false);
   };
 
   if (loading)
@@ -25,27 +47,24 @@ export function DashboardPage() {
     <div className="space-y-6">
       <Profilecard/>
 
-      <Card className="space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-neutral-400 uppercase tracking-wide">
-            Login Token
-          </p>
-          <Button
-            type="button"
-            variant="secondary"
-            className="text-xs px-3 py-1 min-h-0"
-            onClick={handleCopy}
-          >
-            {copied ? "Copied!" : "Copy"}
-          </Button>
-        </div>
-        <div className="relative bg-neutral-800 rounded p-3 font-mono text-sm select-all overflow-hidden">
-          <span className="invisible" aria-hidden="true">
-            •
-          </span>
-          <div className="absolute inset-y-3 left-3 right-3 whitespace-nowrap overflow-hidden after:content-['••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••']"></div>
-        </div>
-      </Card>
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          className="text-xs px-3 py-1 min-h-0"
+          onClick={() => setShowRotateConfirm(true)}
+        >
+          Generate new token
+        </Button>
+        <Button
+          type="button"
+          variant="danger"
+          className="text-xs px-3 py-1 min-h-0"
+          onClick={() => setShowLogoutConfirm(true)}
+        >
+          Logout
+        </Button>
+      </div>
 
       {matches.length > 0 && (
         <div className="space-y-2">
@@ -74,6 +93,89 @@ export function DashboardPage() {
 
       {matches.length === 0 && (
         <p className="text-neutral-500 text-center">No matches yet</p>
+      )}
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <Card className="w-full max-w-sm mx-4 space-y-4">
+            <p className="text-sm text-neutral-300 leading-relaxed">
+              Are you sure you want to logout?
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="secondary"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={logout}>
+                Logout
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {showRotateConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <Card className="w-full max-w-sm mx-4 space-y-4">
+            <p className="text-sm text-neutral-300 leading-relaxed">
+              This will invalidate your current token. Any other devices using
+              this token will be logged out. You will be shown the new token
+              once — save it in a safe place.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="secondary"
+                onClick={() => setShowRotateConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleRotate}
+                disabled={rotating}
+              >
+                {rotating ? "Generating..." : "Continue"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {rotatedToken && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 max-w-md w-full mx-4 space-y-4">
+            <h2 className="text-xl font-bold">New token generated</h2>
+
+            <p className="text-sm text-neutral-400">
+              Your old token has been invalidated. Your new token is shown
+              below. Save it in a safe place.
+            </p>
+
+            <div className="relative bg-neutral-800 rounded p-3 font-mono text-sm select-all overflow-hidden">
+              <span className="invisible" aria-hidden="true">•</span>
+              <div className="absolute inset-y-3 left-3 right-3 whitespace-nowrap overflow-hidden after:content-['••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••']"></div>
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={() => handleCopy(rotatedToken)}
+            >
+              {copied ? "Copied!" : "Copy token"}
+            </Button>
+
+            <Button
+              type="button"
+              className="w-full"
+              onClick={closeRotatedModal}
+            >
+              Done
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
