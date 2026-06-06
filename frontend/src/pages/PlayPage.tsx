@@ -28,6 +28,8 @@ export function PlayPage({
   onGameActiveChange?: (active: boolean) => void;
 }) {
   const [status, setStatus] = useState<GameStatus>("idle");
+  const [mockMode, setMockMode] = useState(false);
+  const mockAutoJoined = useRef(false);
   const statusRef = useRef(status);
   statusRef.current = status;
   const [match, setMatch] = useState<MatchFoundMessage | null>(null);
@@ -86,7 +88,19 @@ export function PlayPage({
     onGameActiveChange?.(false);
   }, [onGameActiveChange]);
 
-  const { send } = useWebSocket(onMessage, onOpen, onClose);
+  const { send } = useWebSocket(onMessage, onOpen, onClose, mockMode);
+
+  useEffect(() => {
+    if (mockMode && status === "connected" && !mockAutoJoined.current) {
+      mockAutoJoined.current = true;
+      setError("");
+      send({ type: "join_queue" });
+      setStatus("queueing");
+    }
+    if (!mockMode) {
+      mockAutoJoined.current = false;
+    }
+  }, [mockMode, status, send]);
 
   useEffect(() => {
     if (countdown === null || countdown <= 0) return;
@@ -168,6 +182,8 @@ export function PlayPage({
     setMoveTimeout(null);
     setChoiceTimeLeft(null);
     setError("");
+    setMockMode(false);
+    mockAutoJoined.current = false;
     onGameActiveChange?.(false);
   };
 
@@ -198,9 +214,16 @@ export function PlayPage({
           )}
 
           {status === "connected" && (
-            <Button onClick={join} icon={SwordsIcon}>
-              Find match
-            </Button>
+            <div className="flex gap-4">
+              <Button onClick={join} icon={SwordsIcon}>
+                Find match
+              </Button>
+              {import.meta.env.DEV && (
+                <Button onClick={() => setMockMode(true)} icon={SwordsIcon}>
+                  Test play
+                </Button>
+              )}
+            </div>
           )}
 
           {status === "queueing" && (
