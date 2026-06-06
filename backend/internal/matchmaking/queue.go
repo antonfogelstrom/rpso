@@ -69,7 +69,7 @@ func (q *Queue) Join(entry *Entry) string {
 	q.entries = q.entries[2:]
 	q.mu.Unlock()
 
-	go q.createMatch(p1, p2)
+	go createMatch(q.hub, q.pool, q.players, q.matches, q.rounds, q.wg, p1, p2)
 	return ""
 }
 
@@ -85,65 +85,6 @@ func (q *Queue) Leave(playerID uuid.UUID) {
 	}
 }
 
-func (q *Queue) createMatch(p1, p2 *Entry) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	player1, err := q.players.GetByID(ctx, p1.PlayerID)
-	if err != nil {
-		log.Printf("failed to get player %s: %v", p1.PlayerID, err)
-		q.notifyError(p1, p2, "server error")
-		return
-	}
-	player2, err := q.players.GetByID(ctx, p2.PlayerID)
-	if err != nil {
-		log.Printf("failed to get player %s: %v", p2.PlayerID, err)
-		q.notifyError(p1, p2, "server error")
-		return
-	}
-
-	tx, err := q.pool.Begin(ctx)
-	if err != nil {
-		log.Printf("failed to begin transaction: %v", err)
-		q.notifyError(p1, p2, "server error")
-		return
-	}
-	defer tx.Rollback(ctx)
-
-	m, err := q.matches.Create(ctx, tx, p1.PlayerID, p2.PlayerID, DefaultBestOf, player1.Rating, player2.Rating)
-	if err != nil {
-		log.Printf("failed to create match: %v", err)
-		q.notifyError(p1, p2, "server error")
-		return
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		log.Printf("failed to commit transaction: %v", err)
-		q.notifyError(p1, p2, "server error")
-		return
-	}
-
-	q.hub.SendToPlayer(p1.PlayerID, map[string]interface{}{
-		"type":            "match_found",
-		"match_id":        m.ID.String(),
-		"opponent":        player2.Username,
-		"opponent_rating": player2.Rating,
-		"move_timeout":    30,
-	})
-	q.hub.SendToPlayer(p2.PlayerID, map[string]interface{}{
-		"type":            "match_found",
-		"match_id":        m.ID.String(),
-		"opponent":        player1.Username,
-		"opponent_rating": player1.Rating,
-		"move_timeout":    30,
-	})
-
-	q.wg.Add(1)
-	eng := game.NewEngine(m.ID, p1.PlayerID, p2.PlayerID, player1.Username, player2.Username,
-		player1.Rating, player2.Rating, DefaultBestOf, q.hub, q.pool, q.players, q.matches, q.rounds, q.wg)
-	go eng.Run()
-}
-
 func (q *Queue) notifyError(p1, p2 *Entry, msg string) {
 	q.hub.SendToPlayer(p1.PlayerID, map[string]interface{}{
 		"type":    "error",
@@ -153,4 +94,98 @@ func (q *Queue) notifyError(p1, p2 *Entry, msg string) {
 		"type":    "error",
 		"message": msg,
 	})
+}
+
+func createMatch(hub *ws.Hub, pool *pgxpool.Pool, players *db.PlayerRepo, matches *db.MatchRepo, rounds *db.RoundRepo, wg *sync.WaitGroup, p1, p2 *Entry) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	player1, err := players.GetByID(ctx, p1.PlayerID)
+	if err != nil {
+		log.Printf("failed to get player %s: %v", p1.PlayerID, err)
+		hub.SendToPlayer(p1.PlayerID, map[string]interface{}{
+			"type":    "error",
+			"message": "server error",
+		})
+		hub.SendToPlayer(p2.PlayerID, map[string]interface{}{
+			"type":    "error",
+			"message": "server error",
+		})
+		return
+	}
+	player2, err := players.GetByID(ctx, p2.PlayerID)
+	if err != nil {
+		log.Printf("failed to get player %s: %v", p2.PlayerID, err)
+		hub.SendToPlayer(p1.PlayerID, map[string]interface{}{
+			"type":    "error",
+			"message": "server error",
+		})
+		hub.SendToPlayer(p2.PlayerID, map[string]interface{}{
+			"type":    "error",
+			"message": "server error",
+		})
+		return
+	}
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		log.Printf("failed to begin transaction: %v", err)
+		hub.SendToPlayer(p1.PlayerID, map[string]interface{}{
+			"type":    "error",
+			"message": "server error",
+		})
+		hub.SendToPlayer(p2.PlayerID, map[string]interface{}{
+			"type":    "error",
+			"message": "server error",
+		})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	m, err := matches.Create(ctx, tx, p1.PlayerID, p2.PlayerID, DefaultBestOf, player1.Rating, player2.Rating)
+	if err != nil {
+		log.Printf("failed to create match: %v", err)
+		hub.SendToPlayer(p1.PlayerID, map[string]interface{}{
+			"type":    "error",
+			"message": "server error",
+		})
+		hub.SendToPlayer(p2.PlayerID, map[string]interface{}{
+			"type":    "error",
+			"message": "server error",
+		})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Printf("failed to commit transaction: %v", err)
+		hub.SendToPlayer(p1.PlayerID, map[string]interface{}{
+			"type":    "error",
+			"message": "server error",
+		})
+		hub.SendToPlayer(p2.PlayerID, map[string]interface{}{
+			"type":    "error",
+			"message": "server error",
+		})
+		return
+	}
+
+	hub.SendToPlayer(p1.PlayerID, map[string]interface{}{
+		"type":            "match_found",
+		"match_id":        m.ID.String(),
+		"opponent":        player2.Username,
+		"opponent_rating": player2.Rating,
+		"move_timeout":    30,
+	})
+	hub.SendToPlayer(p2.PlayerID, map[string]interface{}{
+		"type":            "match_found",
+		"match_id":        m.ID.String(),
+		"opponent":        player1.Username,
+		"opponent_rating": player1.Rating,
+		"move_timeout":    30,
+	})
+
+	wg.Add(1)
+	eng := game.NewEngine(m.ID, p1.PlayerID, p2.PlayerID, player1.Username, player2.Username,
+		player1.Rating, player2.Rating, DefaultBestOf, hub, pool, players, matches, rounds, wg)
+	go eng.Run()
 }

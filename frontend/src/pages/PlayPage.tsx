@@ -20,7 +20,14 @@ import {
   PlugZap,
   type LucideIcon,
   Hourglass,
+  Link2,
+  Copy,
+  Check,
+  DicesIcon,
+  TestTubeDiagonal,
+  CircleQuestionMark,
 } from "lucide-react";
+import { Input } from "../components/ui/Input";
 
 export function PlayPage({
   onGameActiveChange,
@@ -44,6 +51,8 @@ export function PlayPage({
   const [choiceTimeLeft, setChoiceTimeLeft] = useState<number | null>(null);
   const [moveTimeout, setMoveTimeout] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [lobbyCode, setLobbyCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const wasQueueingRef = useRef(false);
 
   const onMessage = useCallback(
@@ -71,6 +80,9 @@ export function PlayPage({
           break;
         case "match_result":
           setResultMsg(msg);
+          break;
+        case "private_lobby_created":
+          setLobbyCode(msg.code);
           break;
         case "error":
           setError(msg.message);
@@ -149,6 +161,18 @@ export function PlayPage({
     }
   }, [status, send]);
 
+  useEffect(() => {
+    if (status === "connected") {
+      const pendingCode = sessionStorage.getItem("pendingPrivateMatch");
+      if (pendingCode) {
+        sessionStorage.removeItem("pendingPrivateMatch");
+        setLobbyCode(pendingCode);
+        send({ type: "join_private_lobby", data: { code: pendingCode } });
+        setStatus("private_queueing");
+      }
+    }
+  }, [status, send]);
+
   const join = () => {
     setError("");
     send({ type: "join_queue" });
@@ -161,6 +185,33 @@ export function PlayPage({
     setStatus("connected");
     wasQueueingRef.current = false;
     onGameActiveChange?.(false);
+  };
+
+  const createPrivateLobby = () => {
+    setError("");
+    send({ type: "create_private_lobby" });
+    setStatus("private_queueing");
+  };
+
+  const cancelPrivateLobby = () => {
+    if (lobbyCode) {
+      send({ type: "cancel_private_lobby", data: { code: lobbyCode } });
+    }
+    setLobbyCode(null);
+    setCopied(false);
+    setStatus("connected");
+  };
+
+  const handleCopyLink = async () => {
+    if (!lobbyCode) return;
+    const link = buildPrivateLobbyLink();
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+  };
+
+  const buildPrivateLobbyLink = (): string => {
+    if (!lobbyCode) return "";
+    return `${window.location.origin}?private=${lobbyCode}`;
   };
 
   const makeMove = (move: Move) => {
@@ -184,6 +235,9 @@ export function PlayPage({
   };
 
   const handleHome = () => {
+    if (lobbyCode) {
+      send({ type: "cancel_private_lobby", data: { code: lobbyCode } });
+    }
     send({ type: "leave_queue" });
     setStatus("connected");
     wasQueueingRef.current = false;
@@ -198,6 +252,8 @@ export function PlayPage({
     setChoiceTimeLeft(null);
     setError("");
     setMockMode(false);
+    setLobbyCode(null);
+    setCopied(false);
     mockAutoJoined.current = false;
     onGameActiveChange?.(false);
   };
@@ -217,7 +273,8 @@ export function PlayPage({
     <div>
       {(status === "idle" ||
         status === "connected" ||
-        status === "queueing") && (
+        status === "queueing" ||
+        status === "private_queueing") && (
         <div className="flex items-center justify-center h-[75vh]">
           {status === "idle" && (
             <Button variant="secondary" icon={PlugZap}>
@@ -229,12 +286,23 @@ export function PlayPage({
           )}
 
           {status === "connected" && (
-            <div className="flex gap-4">
-              <Button onClick={join} icon={SwordsIcon}>
-                Find match
+            <div className="flex flex-col gap-4 w-2xs">
+              <Button variant="secondary" onClick={join} icon={DicesIcon}>
+                Random opponent
               </Button>
+              <Button
+                onClick={createPrivateLobby}
+                variant="secondary"
+                icon={SwordsIcon}
+              >
+                Private lobby
+              </Button>
+
               {import.meta.env.DEV && (
-                <Button onClick={() => setMockMode(true)} icon={SwordsIcon}>
+                <Button
+                  onClick={() => setMockMode(true)}
+                  icon={TestTubeDiagonal}
+                >
                   Test play
                 </Button>
               )}
@@ -242,15 +310,72 @@ export function PlayPage({
           )}
 
           {status === "queueing" && (
-            <Button variant="secondary" onClick={leave} icon={X}>
-              Searching for opponent
-              <span className="animate-dot">.</span>
-              <span className="animate-dot-2">.</span>
-              <span className="animate-dot-3">.</span>
-            </Button>
+            <div className="flex flex-col items-center gap-4">
+              <Button variant="secondary" onClick={leave} icon={X}>
+                Searching for opponent
+                <span className="animate-dot">.</span>
+                <span className="animate-dot-2">.</span>
+                <span className="animate-dot-3">.</span>
+              </Button>
+            </div>
           )}
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {status === "private_queueing" && !error && (
+            <div className="flex flex-col gap-4 w-2xs">
+              {copied ? (
+                <p className="text-xs text-center">
+                  The lobby link has been copied! <br />
+                  Send it to the person you want to challange.
+                </p>
+              ) : (
+                <p className="text-xs text-center">
+                  Copy the lobby link and send it to the person you want to
+                  challange!
+                </p>
+              )}
+
+              <Input
+                placeholder="Invitation link"
+                value={buildPrivateLobbyLink()}
+                className="text-xs cursor-pointer"
+                onClick={handleCopyLink}
+              />
+              {copied ? (
+                <Button
+                  variant="secondary"
+                  onClick={cancelPrivateLobby}
+                  icon={X}
+                >
+                  Awaiting response
+                  <span className="animate-dot">.</span>
+                  <span className="animate-dot-2">.</span>
+                  <span className="animate-dot-3">.</span>
+                </Button>
+              ) : (
+                <>
+                  <Button onClick={handleCopyLink} icon={Copy}>
+                    Copy lobby link
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={cancelPrivateLobby}
+                    icon={X}
+                  >
+                    Leave lobby
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+
+          {status === "private_queueing" && error && (
+            <div className="flex flex-col gap-4 w-2xs text-center">
+              <p className="text-red-400 text-sm">{error}</p>
+              <Button variant="secondary" onClick={cancelPrivateLobby} icon={X}>
+                Leave
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -347,10 +472,8 @@ export function PlayPage({
                         </div>
                       ) : (
                         <div className="backdrop-blur-sm bg-neutral-800/50 rounded-xl p-4 animate-pulse flex flex-col items-center justify-center min-h-20 min-w-20">
-                          <p className="text-center text-sm text-neutral-400 mt-4">
-                            <span className="animate-dot">.</span>
-                            <span className="animate-dot-2">.</span>
-                            <span className="animate-dot-3">.</span>
+                          <p className="text-center text-xl text-neutral-400 font-bold">
+                            ?
                           </p>
                         </div>
                       )}

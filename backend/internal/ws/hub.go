@@ -22,6 +22,7 @@ type Hub struct {
 	engines       map[uuid.UUID]*EngineHandle
 	mu            sync.RWMutex
 	onMessage     func(msg *Message, client *Client)
+	onDisconnect  func(client *Client)
 }
 
 func NewHub() *Hub {
@@ -39,6 +40,12 @@ func NewHub() *Hub {
 func (h *Hub) SetOnMessage(fn func(msg *Message, client *Client)) {
 	h.mu.Lock()
 	h.onMessage = fn
+	h.mu.Unlock()
+}
+
+func (h *Hub) SetOnDisconnect(fn func(client *Client)) {
+	h.mu.Lock()
+	h.onDisconnect = fn
 	h.mu.Unlock()
 }
 
@@ -72,18 +79,22 @@ func (h *Hub) Run() {
 					}
 				}
 
-				if matchID, ok := h.playerMatches[client.PlayerID]; ok {
-					if eng, ok := h.engines[matchID]; ok {
-						go func(pid uuid.UUID) {
-							select {
-							case eng.DisconnectCh <- pid:
-							default:
-							}
-						}(client.PlayerID)
-					}
+			if matchID, ok := h.playerMatches[client.PlayerID]; ok {
+				if eng, ok := h.engines[matchID]; ok {
+					go func(pid uuid.UUID) {
+						select {
+						case eng.DisconnectCh <- pid:
+						default:
+						}
+					}(client.PlayerID)
 				}
 			}
-			h.mu.Unlock()
+
+			if h.onDisconnect != nil {
+				go h.onDisconnect(client)
+			}
+		}
+		h.mu.Unlock()
 
 		case msg := <-h.incoming:
 			h.handleMessage(msg)

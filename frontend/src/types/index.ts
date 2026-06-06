@@ -94,12 +94,18 @@ export interface ErrorMessage {
   message: string
 }
 
+export interface PrivateLobbyCreatedMessage {
+  type: "private_lobby_created"
+  code: string
+}
+
 export type ServerMessage =
   | QueueStatusMessage
   | MatchFoundMessage
   | RoundResultMessage
   | MatchResultMessage
   | ErrorMessage
+  | PrivateLobbyCreatedMessage
 
 export interface ClientMessageJoinQueue {
   type: "join_queue"
@@ -114,8 +120,28 @@ export interface ClientMessageMove {
   data: { move: "rock" | "paper" | "scissors" }
 }
 
-export type ClientMessage = ClientMessageJoinQueue | ClientMessageLeaveQueue | ClientMessageMove
+export interface ClientMessageCreatePrivateLobby {
+  type: "create_private_lobby"
+}
+
+export interface ClientMessageJoinPrivateLobby {
+  type: "join_private_lobby"
+  data: { code: string }
+}
+
+export interface ClientMessageCancelPrivateLobby {
+  type: "cancel_private_lobby"
+  data: { code: string }
+}
+
+export type ClientMessage =
+  | ClientMessageJoinQueue
+  | ClientMessageLeaveQueue
+  | ClientMessageMove
+  | ClientMessageCreatePrivateLobby
+  | ClientMessageJoinPrivateLobby
+  | ClientMessageCancelPrivateLobby
 
 export type Move = "rock" | "paper" | "scissors"
 export type View = "login" | "register" | "dash" | "lb" | "play"
-export type GameStatus = "idle" | "connected" | "queueing" | "playing" | "done"
+export type GameStatus = "idle" | "connected" | "queueing" | "private_queueing" | "playing" | "done"

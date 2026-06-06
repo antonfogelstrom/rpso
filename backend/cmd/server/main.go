@@ -53,6 +53,7 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	queue := matchmaking.NewQueue(hub, pool, playerRepo, matchRepo, roundRepo, wg)
+	lobbyStore := matchmaking.NewLobbyStore(hub, pool, playerRepo, matchRepo, roundRepo, wg)
 
 	hub.SetOnMessage(func(msg *ws.Message, client *ws.Client) {
 		switch msg.Type {
@@ -64,12 +65,58 @@ func main() {
 			})
 		case "leave_queue":
 			queue.Leave(client.PlayerID)
+		case "create_private_lobby":
+			code, err := lobbyStore.Create(client.ID, client.PlayerID)
+			if err != nil {
+				client.SendJSON(map[string]interface{}{
+					"type":    "error",
+					"message": err.Error(),
+				})
+				return
+			}
+			client.SendJSON(map[string]interface{}{
+				"type": "private_lobby_created",
+				"code": code,
+			})
+		case "join_private_lobby":
+			var data struct {
+				Code string `json:"code"`
+			}
+			if err := json.Unmarshal(msg.Data, &data); err != nil {
+				client.SendJSON(map[string]interface{}{
+					"type":    "error",
+					"message": "invalid data",
+				})
+				return
+			}
+			if err := lobbyStore.Join(data.Code, client.ID, client.PlayerID); err != nil {
+				client.SendJSON(map[string]interface{}{
+					"type":    "error",
+					"message": err.Error(),
+				})
+			}
+		case "cancel_private_lobby":
+			var data struct {
+				Code string `json:"code"`
+			}
+			if err := json.Unmarshal(msg.Data, &data); err != nil {
+				client.SendJSON(map[string]interface{}{
+					"type":    "error",
+					"message": "invalid data",
+				})
+				return
+			}
+			lobbyStore.Cancel(data.Code, client.PlayerID)
 		default:
 			client.SendJSON(map[string]interface{}{
 				"type":    "error",
 				"message": "unknown message type",
 			})
 		}
+	})
+
+	hub.SetOnDisconnect(func(client *ws.Client) {
+		lobbyStore.HandleDisconnect(client.PlayerID)
 	})
 
 	go hub.Run()

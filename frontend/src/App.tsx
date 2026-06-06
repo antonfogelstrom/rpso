@@ -14,7 +14,22 @@ function AppContent() {
   const [gameActive, setGameActive] = useState(false);
 
   useEffect(() => {
-    if (playerId) setView("dash");
+    const params = new URLSearchParams(window.location.search);
+    const privateCode = params.get("private");
+    if (privateCode) {
+      sessionStorage.setItem("pendingPrivateMatch", privateCode);
+      window.history.replaceState({}, "", window.location.pathname);
+      if (playerId) {
+        setView("play");
+      }
+    }
+  }, [playerId]);
+
+  useEffect(() => {
+    if (playerId) {
+      const pendingCode = sessionStorage.getItem("pendingPrivateMatch");
+      setView(pendingCode ? "play" : "dash");
+    }
   }, [playerId]);
 
   const isLoggedIn = !!playerId;
