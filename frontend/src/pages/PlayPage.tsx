@@ -199,7 +199,7 @@ export function PlayPage({
   )?.emoji;
 
   return (
-    <div className="space-y-4">
+    <div>
       {(status === "idle" ||
         status === "connected" ||
         status === "queueing") && (
@@ -241,12 +241,12 @@ export function PlayPage({
 
       {(status === "playing" || status === "done") && match && (
         <div className="flex items-center justify-center h-[75vh]">
-          <div className="space-y-6 w-full">
+          <div className="space-y-6 w-full h-full mt-[25vh]">
             <div className="grid grid-cols-1">
               <div
                 className={`col-start-1 row-start-1 transition-all duration-500 ease-out ${
                   myMove !== null
-                    ? "opacity-0 scale-95 translate-y-0 pointer-events-none"
+                    ? "opacity-0 scale-95 -translate-y-8 pointer-events-none"
                     : "opacity-100 scale-100 translate-y-0"
                 }`}
               >
@@ -296,7 +296,7 @@ export function PlayPage({
                 }`}
               >
                 <div className="relative">
-                  {revealed && pendingResult && (
+                  {revealed && pendingResult ? (
                     <div className="text-center mt-4 space-y-1">
                       <Badge
                         variant={
@@ -316,6 +316,10 @@ export function PlayPage({
                       <span className="text-neutral-500 ml-1">
                         {pendingResult.score[0]}-{pendingResult.score[1]}
                       </span>
+                    </div>
+                  ) : (
+                    <div className="text-center mt-4 space-y-1">
+                      <Badge variant={"neutral"}>Waiting for opponent..</Badge>
                     </div>
                   )}
                   <div className="flex items-center justify-center gap-4 sm:gap-12">
