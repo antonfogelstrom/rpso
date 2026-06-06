@@ -244,7 +244,7 @@ export function PlayPage({
           <div className="space-y-6 w-full h-full mt-[25vh]">
             <div className="grid grid-cols-1">
               <div
-                className={`col-start-1 h-[12vh] row-start-1 transition-all duration-500 ease-out ${
+                className={`col-start-1 h-[14vh] row-start-1 transition-all duration-500 ease-out ${
                   myMove !== null
                     ? "opacity-0 scale-95 pointer-events-none"
                     : "opacity-100 scale-100"
@@ -289,7 +289,7 @@ export function PlayPage({
               </div>
 
               <div
-                className={`col-start-1 h-[12vh] row-start-1 transition-all duration-500 ease-out ${
+                className={`col-start-1 h-[14vh] row-start-1 transition-all duration-500 ease-out ${
                   myMove !== null
                     ? "opacity-100 scale-100 translate-y-0"
                     : "opacity-0 scale-95 translate-y-4 pointer-events-none"
