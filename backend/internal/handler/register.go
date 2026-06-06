@@ -75,7 +75,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   86400,
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   h.secureCookie,
+		SameSite: http.SameSiteStrictMode,
 	})
 
 	writeJSON(w, http.StatusCreated, envelope{

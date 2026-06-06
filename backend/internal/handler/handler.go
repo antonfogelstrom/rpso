@@ -16,9 +16,10 @@ type Handler struct {
 	session        *auth.SessionStore
 	hub            *ws.Hub
 	allowedOrigins map[string]bool
+	secureCookie   bool
 }
 
-func New(players *db.PlayerRepo, matches *db.MatchRepo, rounds *db.RoundRepo, session *auth.SessionStore, hub *ws.Hub, allowedOrigins map[string]bool) *Handler {
+func New(players *db.PlayerRepo, matches *db.MatchRepo, rounds *db.RoundRepo, session *auth.SessionStore, hub *ws.Hub, allowedOrigins map[string]bool, secureCookie bool) *Handler {
 	return &Handler{
 		players:        players,
 		matches:        matches,
@@ -26,6 +27,7 @@ func New(players *db.PlayerRepo, matches *db.MatchRepo, rounds *db.RoundRepo, se
 		session:        session,
 		hub:            hub,
 		allowedOrigins: allowedOrigins,
+		secureCookie:   secureCookie,
 	}
 }
 

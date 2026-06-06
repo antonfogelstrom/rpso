@@ -10,9 +10,7 @@ export class GameSocket {
   private retries = 0
 
   connect() {
-    const protocol = location.protocol === "https:" ? "wss:" : "ws:"
-    const host = import.meta.env.DEV ? "localhost:8080" : location.host
-    this.ws = new WebSocket(`${protocol}//${host}/api/ws`)
+    this.ws = new WebSocket(`/api/ws`)
 
     this.ws.onopen = () => {
       this.retries = 0

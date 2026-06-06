@@ -75,8 +75,9 @@ func main() {
 	go hub.Run()
 
 	allowedOrigins := parseAllowedOrigins(os.Getenv("ALLOWED_ORIGINS"))
+	secureCookie := os.Getenv("COOKIE_SECURE") == "true"
 
-	h := handler.New(playerRepo, matchRepo, roundRepo, sessionStore, hub, allowedOrigins)
+	h := handler.New(playerRepo, matchRepo, roundRepo, sessionStore, hub, allowedOrigins, secureCookie)
 
 	r := chi.NewRouter()
 	r.Use(chiMiddleware.Logger)

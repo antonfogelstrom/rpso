@@ -51,7 +51,8 @@ func (h *Handler) RotateToken(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   86400,
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   h.secureCookie,
+		SameSite: http.SameSiteStrictMode,
 	})
 
 	writeJSON(w, http.StatusOK, envelope{
