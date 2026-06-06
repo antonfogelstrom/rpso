@@ -10,7 +10,7 @@ export function Input({ label, className = "", id, ...props }: InputProps) {
       {label && <label htmlFor={id} className="text-sm text-neutral-400">{label}</label>}
       <input
         id={id}
-        className={`w-full bg-neutral-900 border border-neutral-700 rounded min-h-[44px] px-3 py-2 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-emerald-500 ${className}`}
+        className={`w-full bg-neutral-900 border border-neutral-700 rounded min-h-11 px-3 py-2 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-emerald-500 ${className}`}
         {...props}
       />
     </div>

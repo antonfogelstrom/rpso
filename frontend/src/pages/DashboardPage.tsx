@@ -155,11 +155,14 @@ export function DashboardPage() {
             <h2 className="text-xl font-bold">New token generated</h2>
 
             <p className="text-sm text-neutral-400">
-              Your old token has been invalidated. Save your new token in a safe
-              place.
+              A new login token has been generated and your old token has been
+              invalidated. Save your new token in a safe place.
             </p>
 
-            <div className="relative bg-neutral-800 rounded p-3 font-mono text-sm select-all overflow-hidden">
+            <div
+              className="relative bg-neutral-800 rounded p-3 font-mono text-sm select-all overflow-hidden"
+              onClick={() => handleCopy(rotatedToken)}
+            >
               <span className="invisible" aria-hidden="true">
                 •
               </span>

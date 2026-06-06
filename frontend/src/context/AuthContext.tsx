@@ -18,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback((pid: string, u: string) => {
     localStorage.setItem("playerId", pid)
     localStorage.setItem("username", u)
+    localStorage.setItem("lastUsername", u)
     setPlayerId(pid)
     setUsername(u)
   }, [])

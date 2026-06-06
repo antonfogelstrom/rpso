@@ -7,7 +7,9 @@ import type { RegisterResponse } from "../types";
 
 export function AuthPage() {
   const { login } = useAuth();
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(
+    () => localStorage.getItem("lastUsername") ?? "",
+  );
   const [token, setToken] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,6 +75,7 @@ export function AuthPage() {
 
           <Input
             placeholder="Token"
+            type="password"
             value={token}
             onChange={(e) => setToken(e.target.value)}
             required
@@ -110,11 +113,13 @@ export function AuthPage() {
             </p>
 
             <p className="text-sm text-neutral-400">
-              A login token has been generated. Save it in a safe place — you'll
-              need it to log in to your account.
+              A login token has been generated. Save it in a safe place.
             </p>
 
-            <div className="relative bg-neutral-800 rounded p-3 font-mono text-sm select-all overflow-hidden">
+            <div
+              className="relative bg-neutral-800 rounded p-3 font-mono text-sm select-all overflow-hidden"
+              onClick={() => handleCopy(registeredData.token)}
+            >
               <span className="invisible" aria-hidden="true">
                 •
               </span>
