@@ -123,14 +123,14 @@ func (q *Queue) createMatch(p1, p2 *Entry) {
 		return
 	}
 
-	q.hub.SendToClient(p1.ClientID, map[string]interface{}{
+	q.hub.SendToPlayer(p1.PlayerID, map[string]interface{}{
 		"type":            "match_found",
 		"match_id":        m.ID.String(),
 		"opponent":        player2.Username,
 		"opponent_rating": player2.Rating,
 		"move_timeout":    30,
 	})
-	q.hub.SendToClient(p2.ClientID, map[string]interface{}{
+	q.hub.SendToPlayer(p2.PlayerID, map[string]interface{}{
 		"type":            "match_found",
 		"match_id":        m.ID.String(),
 		"opponent":        player1.Username,
@@ -145,11 +145,11 @@ func (q *Queue) createMatch(p1, p2 *Entry) {
 }
 
 func (q *Queue) notifyError(p1, p2 *Entry, msg string) {
-	q.hub.SendToClient(p1.ClientID, map[string]interface{}{
+	q.hub.SendToPlayer(p1.PlayerID, map[string]interface{}{
 		"type":    "error",
 		"message": msg,
 	})
-	q.hub.SendToClient(p2.ClientID, map[string]interface{}{
+	q.hub.SendToPlayer(p2.PlayerID, map[string]interface{}{
 		"type":    "error",
 		"message": msg,
 	})

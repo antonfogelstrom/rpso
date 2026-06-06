@@ -44,6 +44,7 @@ export function PlayPage({
   const [choiceTimeLeft, setChoiceTimeLeft] = useState<number | null>(null);
   const [moveTimeout, setMoveTimeout] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const wasQueueingRef = useRef(false);
 
   const onMessage = useCallback(
     (msg: ServerMessage) => {
@@ -61,6 +62,7 @@ export function PlayPage({
           setMoveTimeout(msg.move_timeout);
           setChoiceTimeLeft(msg.move_timeout);
           setStatus("playing");
+          wasQueueingRef.current = false;
           onGameActiveChange?.(true);
           break;
         case "round_result":
@@ -78,7 +80,9 @@ export function PlayPage({
     [onGameActiveChange],
   );
 
-  const onOpen = useCallback(() => setStatus("connected"), []);
+  const onOpen = useCallback(() => {
+    setStatus("connected");
+  }, []);
   const onClose = useCallback(() => {
     const prev = statusRef.current;
     if (prev !== "idle" && prev !== "done") {
@@ -137,15 +141,25 @@ export function PlayPage({
     return () => clearTimeout(t);
   }, [choiceTimeLeft]);
 
+  useEffect(() => {
+    if (status === "connected" && wasQueueingRef.current) {
+      wasQueueingRef.current = false;
+      send({ type: "join_queue" });
+      setStatus("queueing");
+    }
+  }, [status, send]);
+
   const join = () => {
     setError("");
     send({ type: "join_queue" });
     setStatus("queueing");
+    wasQueueingRef.current = true;
   };
 
   const leave = () => {
     send({ type: "leave_queue" });
     setStatus("connected");
+    wasQueueingRef.current = false;
     onGameActiveChange?.(false);
   };
 
@@ -172,6 +186,7 @@ export function PlayPage({
   const handleHome = () => {
     send({ type: "leave_queue" });
     setStatus("connected");
+    wasQueueingRef.current = false;
     setMatch(null);
     setRounds([]);
     setResultMsg(null);
