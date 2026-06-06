@@ -50,12 +50,12 @@ export const apiClient = {
     return request<void>("/api/logout", { method: "POST" })
   },
 
-  getProfile(playerId: string): Promise<PlayerProfile> {
-    return request<PlayerProfile>(`/api/players/${playerId}`)
+  getProfile(playerId: string, signal?: AbortSignal): Promise<PlayerProfile> {
+    return request<PlayerProfile>(`/api/players/${playerId}`, { signal })
   },
 
-  getMatches(playerId: string, limit = 10): Promise<Match[]> {
-    return request<Match[]>(`/api/players/${playerId}/matches?limit=${limit}`)
+  getMatches(playerId: string, limit = 10, signal?: AbortSignal): Promise<Match[]> {
+    return request<Match[]>(`/api/players/${playerId}/matches?limit=${limit}`, { signal })
   },
 
   getLeaderboard(limit = 20): Promise<Player[]> {

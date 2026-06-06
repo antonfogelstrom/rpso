@@ -1,8 +1,9 @@
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
 
 interface BadgeProps {
-  children: ReactNode
-  variant?: "win" | "loss" | "draw" | "neutral"
+  children: ReactNode;
+  variant?: "win" | "loss" | "draw" | "neutral";
+  className?: string;
 }
 
 const colors = {
@@ -10,12 +11,16 @@ const colors = {
   loss: "text-red-400",
   draw: "text-neutral-400",
   neutral: "text-neutral-500",
-}
+};
 
-export function Badge({ children, variant = "neutral" }: BadgeProps) {
+export function Badge({
+  children,
+  className = "",
+  variant = "neutral",
+}: BadgeProps) {
   return (
-    <span className={`text-sm font-medium ${colors[variant]}`}>
+    <span className={`text-sm font-medium ${colors[variant]} ${className}`}>
       {children}
     </span>
-  )
+  );
 }

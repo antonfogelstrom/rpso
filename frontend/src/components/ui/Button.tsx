@@ -10,7 +10,7 @@ const variants = {
   primary: "bg-emerald-600 hover:bg-emerald-500 text-white",
   secondary:
     "bg-neutral-800 hover:bg-neutral-700 text-neutral-100 border border-neutral-700",
-  danger: "bg-red-600 hover:bg-red-500 text-white",
+  danger: "bg-red-600 hover:bg-red-500 text-white border border-red-400",
   ghost:
     "bg-transparent hover:bg-neutral-800 text-neutral-400 hover:text-white",
 };

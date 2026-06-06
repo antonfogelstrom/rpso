@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from "react"
 import { setOnUnauthorized } from "../lib/api"
 import { apiClient } from "../lib/api"
 
@@ -15,28 +15,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [playerId, setPlayerId] = useState<string | null>(() => localStorage.getItem("playerId"))
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem("username"))
 
-  const login = (pid: string, u: string) => {
+  const login = useCallback((pid: string, u: string) => {
     localStorage.setItem("playerId", pid)
     localStorage.setItem("username", u)
     setPlayerId(pid)
     setUsername(u)
-  }
+  }, [])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     apiClient.logout().catch(() => {})
     localStorage.removeItem("playerId")
     localStorage.removeItem("username")
     setPlayerId(null)
     setUsername(null)
-  }
+  }, [])
 
   useEffect(() => {
     setOnUnauthorized(logout)
     return () => setOnUnauthorized(null)
-  }, [])
+  }, [logout])
+
+  const value = useMemo(
+    () => ({ playerId, username, login, logout }),
+    [playerId, username, login, logout]
+  )
 
   return (
-    <AuthContext.Provider value={{ playerId, username, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

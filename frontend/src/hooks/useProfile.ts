@@ -21,19 +21,24 @@ export function useProfile(playerId: string | null): UseProfileResult {
       return
     }
 
+    const controller = new AbortController()
     setLoading(true)
     setError(null)
 
     Promise.all([
-      apiClient.getProfile(playerId),
-      apiClient.getMatches(playerId, 10),
+      apiClient.getProfile(playerId, controller.signal),
+      apiClient.getMatches(playerId, 10, controller.signal),
     ])
       .then(([profileData, matchesData]) => {
         setProfile(profileData)
         setMatches(matchesData)
       })
-      .catch((e: Error) => setError(e.message))
+      .catch((e: Error) => {
+        if (e.name !== "AbortError") setError(e.message)
+      })
       .finally(() => setLoading(false))
+
+    return () => controller.abort()
   }, [playerId])
 
   return { profile, matches, loading, error }

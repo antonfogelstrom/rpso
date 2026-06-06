@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import type { Player } from "../types";
-import { Profilecard } from "../components/layout/ProfileCard";
+import { ProfileCard } from "../components/layout/ProfileCard";
 import { useProfile } from "../hooks/useProfile";
 
 export function LeaderboardPage() {
@@ -24,7 +24,7 @@ export function LeaderboardPage() {
 
   return (
     <div className="space-y-2">
-      <Profilecard />
+      <ProfileCard />
       <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-wide space-y-3 mt-6">
         Leaderboard
       </h2>

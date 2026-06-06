@@ -5,7 +5,7 @@ import { apiClient } from "../lib/api";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
-import { Profilecard } from "../components/layout/ProfileCard";
+import { ProfileCard } from "../components/layout/ProfileCard";
 
 export function DashboardPage() {
   const { playerId, logout } = useAuth();
@@ -35,6 +35,7 @@ export function DashboardPage() {
   };
 
   const closeRotatedModal = () => {
+    setShowRotateConfirm(false);
     setRotatedToken(null);
     setCopied(false);
   };
@@ -45,26 +46,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <Profilecard/>
-
-      <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          className="text-xs px-3 py-1 min-h-0"
-          onClick={() => setShowRotateConfirm(true)}
-        >
-          Generate new token
-        </Button>
-        <Button
-          type="button"
-          variant="danger"
-          className="text-xs px-3 py-1 min-h-0"
-          onClick={() => setShowLogoutConfirm(true)}
-        >
-          Logout
-        </Button>
-      </div>
+      <ProfileCard />
 
       {matches.length > 0 && (
         <div className="space-y-2">
@@ -94,6 +76,30 @@ export function DashboardPage() {
       {matches.length === 0 && (
         <p className="text-neutral-500 text-center">No matches yet</p>
       )}
+
+      <div>
+        <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-wide">
+          Manage user
+        </h2>
+        <div className="flex justify-start gap-2 mt-4">
+          <Button
+            type="button"
+            variant="secondary"
+            className="text-xs px-3 py-1 min-h-0"
+            onClick={() => setShowRotateConfirm(true)}
+          >
+            Generate new token
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            className="text-xs px-3 py-1 min-h-0"
+            onClick={() => setShowLogoutConfirm(true)}
+          >
+            Logout
+          </Button>
+        </div>
+      </div>
 
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -149,12 +155,14 @@ export function DashboardPage() {
             <h2 className="text-xl font-bold">New token generated</h2>
 
             <p className="text-sm text-neutral-400">
-              Your old token has been invalidated. Your new token is shown
-              below. Save it in a safe place.
+              Your old token has been invalidated. Save your new token in a safe
+              place.
             </p>
 
             <div className="relative bg-neutral-800 rounded p-3 font-mono text-sm select-all overflow-hidden">
-              <span className="invisible" aria-hidden="true">•</span>
+              <span className="invisible" aria-hidden="true">
+                •
+              </span>
               <div className="absolute inset-y-3 left-3 right-3 whitespace-nowrap overflow-hidden after:content-['••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••']"></div>
             </div>
 

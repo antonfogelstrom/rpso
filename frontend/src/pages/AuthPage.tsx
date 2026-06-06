@@ -52,10 +52,7 @@ export function AuthPage() {
 
   const handleContinue = () => {
     if (!registeredData) return;
-    login(
-      registeredData.player_id,
-      registeredData.username,
-    );
+    login(registeredData.player_id, registeredData.username);
     setRegisteredData(null);
   };
 
@@ -113,8 +110,8 @@ export function AuthPage() {
             </p>
 
             <p className="text-sm text-neutral-400">
-              Your login token is shown below. Save it in a safe place — you'll
-              need it to log in on another device.
+              A login token has been generated. Save it in a safe place — you'll
+              need it to log in to your account.
             </p>
 
             <div className="relative bg-neutral-800 rounded p-3 font-mono text-sm select-all overflow-hidden">
