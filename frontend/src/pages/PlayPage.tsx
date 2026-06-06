@@ -244,10 +244,10 @@ export function PlayPage({
           <div className="space-y-6 w-full h-full mt-[25vh]">
             <div className="grid grid-cols-1">
               <div
-                className={`col-start-1 row-start-1 transition-all duration-500 ease-out ${
+                className={`col-start-1 h-[12vh] row-start-1 transition-all duration-500 ease-out ${
                   myMove !== null
-                    ? "opacity-0 scale-95 -translate-y-8 pointer-events-none"
-                    : "opacity-100 scale-100 translate-y-0"
+                    ? "opacity-0 scale-95 pointer-events-none"
+                    : "opacity-100 scale-100"
                 }`}
               >
                 {status === "playing" && myMove === null && (
@@ -289,39 +289,13 @@ export function PlayPage({
               </div>
 
               <div
-                className={`col-start-1 row-start-1 transition-all duration-500 ease-out ${
+                className={`col-start-1 h-[12vh] row-start-1 transition-all duration-500 ease-out ${
                   myMove !== null
                     ? "opacity-100 scale-100 translate-y-0"
                     : "opacity-0 scale-95 translate-y-4 pointer-events-none"
                 }`}
               >
                 <div className="relative">
-                  {revealed && pendingResult ? (
-                    <div className="text-center mt-4 space-y-1">
-                      <Badge
-                        variant={
-                          pendingResult.result === "win"
-                            ? "win"
-                            : pendingResult.result === "loss"
-                              ? "loss"
-                              : "draw"
-                        }
-                      >
-                        {pendingResult.result === "win"
-                          ? "WIN"
-                          : pendingResult.result === "loss"
-                            ? "LOSS"
-                            : "TIE"}
-                      </Badge>
-                      <span className="text-neutral-500 ml-1">
-                        {pendingResult.score[0]}-{pendingResult.score[1]}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="text-center mt-4 space-y-1">
-                      <Badge variant={"neutral"}>Waiting for opponent..</Badge>
-                    </div>
-                  )}
                   <div className="flex items-center justify-center gap-4 sm:gap-12">
                     <div className="flex flex-col items-center w-32 sm:w-40">
                       <div
@@ -367,6 +341,28 @@ export function PlayPage({
                       )}
                     </div>
                   </div>
+                  {revealed && pendingResult && (
+                    <div className="text-center mt-4 space-y-1">
+                      <Badge
+                        variant={
+                          pendingResult.result === "win"
+                            ? "win"
+                            : pendingResult.result === "loss"
+                              ? "loss"
+                              : "draw"
+                        }
+                      >
+                        {pendingResult.result === "win"
+                          ? "WIN"
+                          : pendingResult.result === "loss"
+                            ? "LOSS"
+                            : "TIE"}
+                      </Badge>
+                      <span className="text-neutral-500 ml-1">
+                        {pendingResult.score[0]}-{pendingResult.score[1]}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
