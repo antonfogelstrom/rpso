@@ -82,7 +82,7 @@ export function PlayPage({
   const onClose = useCallback(() => {
     const prev = statusRef.current;
     if (prev !== "idle" && prev !== "done") {
-      setError("Disconnected");
+      setError("");
     }
     setStatus("idle");
     onGameActiveChange?.(false);
