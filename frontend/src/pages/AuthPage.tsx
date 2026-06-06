@@ -1,15 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { apiClient } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import type { RegisterResponse } from "../types";
 
-interface AuthPageProps {
-  tab: "login" | "register";
-}
-
-export function AuthPage({ tab }: AuthPageProps) {
+export function AuthPage() {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [token, setToken] = useState("");
@@ -19,37 +15,7 @@ export function AuthPage({ tab }: AuthPageProps) {
     null,
   );
   const [copied, setCopied] = useState(false);
-  const cancelledRef = useRef(false);
-
-  useEffect(() => {
-    if (tab !== "register") {
-      setRegisteredData(null);
-      setErr("");
-      return;
-    }
-
-    cancelledRef.current = false;
-    setErr("");
-    setLoading(true);
-
-    apiClient
-      .register()
-      .then((res) => {
-        if (!cancelledRef.current) setRegisteredData(res);
-      })
-      .catch((e) => {
-        if (!cancelledRef.current) {
-          setErr(e instanceof Error ? e.message : "An error occurred");
-        }
-      })
-      .finally(() => {
-        if (!cancelledRef.current) setLoading(false);
-      });
-
-    return () => {
-      cancelledRef.current = true;
-    };
-  }, [tab]);
+  const [registering, setRegistering] = useState(false);
 
   const handleCopy = async (text: string) => {
     await navigator.clipboard.writeText(text);
@@ -71,6 +37,19 @@ export function AuthPage({ tab }: AuthPageProps) {
     }
   };
 
+  const handleRegister = async () => {
+    setErr("");
+    setRegistering(true);
+    try {
+      const res = await apiClient.register();
+      setRegisteredData(res);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "An error occurred");
+    } finally {
+      setRegistering(false);
+    }
+  };
+
   const handleContinue = () => {
     if (!registeredData) return;
     login(
@@ -85,35 +64,39 @@ export function AuthPage({ tab }: AuthPageProps) {
       <div className="max-w-sm mx-auto mt-24 p-6 space-y-6">
         <h1 className="text-2xl font-bold text-center">rpso</h1>
 
-        {tab === "login" ? (
-          <form onSubmit={handleLogin} className="space-y-4">
-            <Input
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              minLength={3}
-              maxLength={20}
-            />
+        <form onSubmit={handleLogin} className="space-y-4">
+          <Input
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            minLength={3}
+            maxLength={20}
+          />
 
-            <Input
-              placeholder="Token"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              required
-            />
+          <Input
+            placeholder="Token"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            required
+          />
 
-            {err && <p className="text-red-400 text-sm">{err}</p>}
+          {err && <p className="text-red-400 text-sm">{err}</p>}
 
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "..." : "Login"}
-            </Button>
-          </form>
-        ) : loading ? (
-          <p className="text-center text-neutral-400">Registering…</p>
-        ) : err ? (
-          <p className="text-red-400 text-sm text-center">{err}</p>
-        ) : null}
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "..." : "Login"}
+          </Button>
+
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full"
+            onClick={handleRegister}
+            disabled={registering}
+          >
+            {registering ? "Registering…" : "Register new user"}
+          </Button>
+        </form>
       </div>
 
       {registeredData && (

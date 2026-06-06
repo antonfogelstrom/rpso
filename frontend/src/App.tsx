@@ -19,11 +19,6 @@ function AppContent() {
 
   const isLoggedIn = !!playerId;
 
-  const authTabs: Tab[] = [
-    { id: "login", label: "Login" },
-    { id: "register", label: "Register" },
-  ];
-
   const mainTabs: Tab[] = [
     { id: "dash", label: "Dashboard" },
     { id: "play", label: "Play" },
@@ -35,7 +30,7 @@ function AppContent() {
       view={view}
       onNavigate={setView}
       navHidden={gameActive}
-      tabs={isLoggedIn ? mainTabs : authTabs}
+      tabs={isLoggedIn ? mainTabs : []}
     >
       {isLoggedIn ? (
         <>
@@ -49,7 +44,7 @@ function AppContent() {
           {view === "play" && <PlayPage onGameActiveChange={setGameActive} />}
         </>
       ) : (
-        <AuthPage tab={view as "login" | "register"} />
+        <AuthPage />
       )}
     </PageLayout>
   );

@@ -13,7 +13,7 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ view, onNavigate, hidden, tabs }: BottomNavProps) {
-  if (hidden) return null
+  if (hidden || tabs.length === 0) return null
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800">
