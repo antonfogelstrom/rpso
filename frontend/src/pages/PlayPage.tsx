@@ -242,111 +242,130 @@ export function PlayPage({
       {(status === "playing" || status === "done") && match && (
         <div className="flex items-center justify-center h-[75vh]">
           <div className="space-y-6 w-full">
-            {status === "playing" && myMove === null && (
-              <div>
-                <p className="text-center text-sm text-neutral-400">
-                  {choiceTimeLeft !== null && choiceTimeLeft > 0 ? (
-                    <div
-                      className={
-                        choiceTimeLeft <= 10 ? "text-red-400" : "text-amber-400"
-                      }
-                    >
-                      <div className="flex gap-1 justify-center items-center">
-                        <Hourglass size={14} />
-                        <span>{choiceTimeLeft}s</span>
-                      </div>
-                    </div>
-                  ) : choiceTimeLeft === 0 ? (
-                    <span className="text-red-500">Time's up! </span>
-                  ) : null}
-                </p>
-                <div className="grid grid-cols-3 gap-4 mt-3">
-                  {moves.map(({ label, move, emoji: ButtonIcon }) => (
-                    <button
-                      key={move}
-                      onClick={() => makeMove(move)}
-                      className="flex flex-col cursor-pointer items-center justify-center min-h-22 bg-neutral-800 hover:bg-neutral-700 hover:scale-105 active:scale-95 rounded-xl border border-neutral-700 transition-all duration-150 p-4"
-                    >
-                      <ButtonIcon className="w-8 h-8 mb-2 text-neutral-200" />
-                      <span className="text-xs font-medium text-neutral-300">
-                        {label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {myMove !== null && (
-              <div className="relative">
-                <div className="flex items-center justify-center gap-4 sm:gap-12">
-                  <div className="flex flex-col items-center w-32 sm:w-40">
-                    <div
-                      className={`mb-2 transition-transform duration-300 ${revealed ? "scale-100" : "scale-110"}`}
-                    >
-                      {MyMoveIcon && (
-                        <MyMoveIcon className="w-12 h-12 sm:w-16 sm:h-16 text-emerald-400" />
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-neutral-300">
-                      {moves.find((m) => m.move === myMove)?.label}
-                    </span>
-                  </div>
-
-                  <div className="text-2xl font-bold text-neutral-500">VS</div>
-
-                  <div className="flex flex-col items-center w-32 sm:w-40">
-                    {revealed && pendingResult ? (
-                      <div className="animate-flip-in flex flex-col items-center">
-                        <div className="mb-2">
-                          {OpponentMoveIcon && (
-                            <OpponentMoveIcon className="w-12 h-12 sm:w-16 sm:h-16 text-red-400" />
-                          )}
-                        </div>
-                        <span className="text-sm font-medium text-neutral-300">
-                          {
-                            moves.find(
-                              (m) => m.move === pendingResult.opponent_move,
-                            )?.label
+            <div className="grid grid-cols-1">
+              <div
+                className={`col-start-1 row-start-1 transition-all duration-500 ease-out ${
+                  myMove !== null
+                    ? "opacity-0 scale-95 translate-y-0 pointer-events-none"
+                    : "opacity-100 scale-100 translate-y-0"
+                }`}
+              >
+                {status === "playing" && myMove === null && (
+                  <div>
+                    <p className="text-center text-sm text-neutral-400">
+                      {choiceTimeLeft !== null && choiceTimeLeft > 0 ? (
+                        <div
+                          className={
+                            choiceTimeLeft <= 10
+                              ? "text-red-400"
+                              : "text-amber-400"
                           }
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="backdrop-blur-sm bg-neutral-800/50 rounded-xl p-4 animate-pulse flex flex-col items-center justify-center min-h-20 min-w-20">
-                        <p className="text-center text-sm text-neutral-400 mt-4">
-                          <span className="animate-dot">.</span>
-                          <span className="animate-dot-2">.</span>
-                          <span className="animate-dot-3">.</span>
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {revealed && pendingResult && (
-                  <div className="text-center mt-4 space-y-1">
-                    <Badge
-                      variant={
-                        pendingResult.result === "win"
-                          ? "win"
-                          : pendingResult.result === "loss"
-                            ? "loss"
-                            : "draw"
-                      }
-                    >
-                      {pendingResult.result === "win"
-                        ? "WIN"
-                        : pendingResult.result === "loss"
-                          ? "LOSS"
-                          : "TIE"}
-                    </Badge>
-                    <span className="text-neutral-500 ml-1">
-                      {pendingResult.score[0]}-{pendingResult.score[1]}
-                    </span>
+                        >
+                          <div className="flex gap-1 justify-center items-center">
+                            <Hourglass size={14} />
+                            <span>{choiceTimeLeft}s</span>
+                          </div>
+                        </div>
+                      ) : choiceTimeLeft === 0 ? (
+                        <span className="text-red-500">Time's up! </span>
+                      ) : null}
+                    </p>
+                    <div className="grid grid-cols-3 gap-4 mt-3">
+                      {moves.map(({ label, move, emoji: ButtonIcon }) => (
+                        <button
+                          key={move}
+                          onClick={() => makeMove(move)}
+                          className="flex flex-col cursor-pointer items-center justify-center min-h-22 bg-neutral-800 hover:bg-neutral-700 hover:scale-105 active:scale-95 rounded-xl border border-neutral-700 transition-all duration-150 p-4"
+                        >
+                          <ButtonIcon className="w-8 h-8 mb-2 text-neutral-200" />
+                          <span className="text-xs font-medium text-neutral-300">
+                            {label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-            )}
+
+              <div
+                className={`col-start-1 row-start-1 transition-all duration-500 ease-out ${
+                  myMove !== null
+                    ? "opacity-100 scale-100 translate-y-0"
+                    : "opacity-0 scale-95 translate-y-4 pointer-events-none"
+                }`}
+              >
+                <div className="relative">
+                  {revealed && pendingResult && (
+                    <div className="text-center mt-4 space-y-1">
+                      <Badge
+                        variant={
+                          pendingResult.result === "win"
+                            ? "win"
+                            : pendingResult.result === "loss"
+                              ? "loss"
+                              : "draw"
+                        }
+                      >
+                        {pendingResult.result === "win"
+                          ? "WIN"
+                          : pendingResult.result === "loss"
+                            ? "LOSS"
+                            : "TIE"}
+                      </Badge>
+                      <span className="text-neutral-500 ml-1">
+                        {pendingResult.score[0]}-{pendingResult.score[1]}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-center gap-4 sm:gap-12">
+                    <div className="flex flex-col items-center w-32 sm:w-40">
+                      <div
+                        className={`mb-2 transition-transform duration-300 ${revealed ? "scale-100" : "scale-110"}`}
+                      >
+                        {MyMoveIcon && (
+                          <MyMoveIcon className="w-12 h-12 sm:w-16 sm:h-16 text-emerald-400" />
+                        )}
+                      </div>
+                      <span className="text-sm font-medium text-neutral-300">
+                        {moves.find((m) => m.move === myMove)?.label}
+                      </span>
+                    </div>
+
+                    <div className="text-2xl font-bold text-neutral-500">
+                      VS
+                    </div>
+
+                    <div className="flex flex-col items-center w-32 sm:w-40">
+                      {revealed && pendingResult ? (
+                        <div className="animate-flip-in flex flex-col items-center">
+                          <div className="mb-2">
+                            {OpponentMoveIcon && (
+                              <OpponentMoveIcon className="w-12 h-12 sm:w-16 sm:h-16 text-red-400" />
+                            )}
+                          </div>
+                          <span className="text-sm font-medium text-neutral-300">
+                            {
+                              moves.find(
+                                (m) => m.move === pendingResult.opponent_move,
+                              )?.label
+                            }
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="backdrop-blur-sm bg-neutral-800/50 rounded-xl p-4 animate-pulse flex flex-col items-center justify-center min-h-20 min-w-20">
+                          <p className="text-center text-sm text-neutral-400 mt-4">
+                            <span className="animate-dot">.</span>
+                            <span className="animate-dot-2">.</span>
+                            <span className="animate-dot-3">.</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <Card className="text-center">
               <p className="text-sm text-neutral-400">
